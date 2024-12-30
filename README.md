@@ -13,11 +13,6 @@ Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 3 year
 
 ---
 
-### 🚀 My GitHub Stats
-![Kalyan's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ikalyancode&show_icons=true&theme=radical)
-
----
-
 ### 🏆 Top Projects
 Here are some of the projects I'm most proud of:
 - [**Portfolio Website**](https://ikalyancode.github.io/portfolio)  
@@ -26,6 +21,13 @@ Here are some of the projects I'm most proud of:
   Automated notifications using Python and Slack API.  
 - [**E-Commerce API**](https://github.com/ikalyancode/e-commerce-api)  
   Scalable backend for an online store built with Spring Boot and integrated with PostgreSQL.
+
+---
+
+### 🎯 Career Highlights
+- **2024**: Developed a Slack bot that streamlined deployment alerts and reduced downtime by 30%.
+- **2023**: Led the migration of legacy .NET systems to Java microservices, improving scalability and performance.
+- **2022**: Designed and implemented an interactive dashboard for real-time analytics using React.js and PostgreSQL.
 
 ---
 

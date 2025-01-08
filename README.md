@@ -13,17 +13,6 @@ Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 3 year
 
 ---
 
-### 🏆 Top Projects
-Here are some of the projects I'm most proud of:
-- [**Portfolio Website**](https://ikalyancode.github.io/portfolio)  
-  A responsive portfolio built with React and deployed using GitHub Pages.  
-- [**Slack Bot for Deployment Alerts**](https://github.com/ikalyancode/slack-bot)  
-  Automated notifications using Python and Slack API.  
-- [**E-Commerce API**](https://github.com/ikalyancode/e-commerce-api)  
-  Scalable backend for an online store built with Spring Boot and integrated with PostgreSQL.
-
----
-
 ### 🎯 Career Highlights
 - **2024**: Developed a Slack bot that streamlined deployment alerts and reduced downtime by 30%.
 - **2023**: Led the migration of legacy .NET systems to Java microservices, improving scalability and performance.

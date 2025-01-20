@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="task-container">
+    <h2>My Tasks</h2>
+    <ul>
+        {% for task in tasks %}
+        <li>
+            {{ task.content }} - Due in <span class="timer" data-due="{{ task.due_date }}">{{ task.time_remaining() }}</span>
+            <a href="{{ url_for('main.delete_task', id=task.id) }}">Delete</a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <form method="POST" action="{{ url_for('main.add_task') }}">
+        <input type="text" name="content" placeholder="New task" required>
+        <input type="number" name="due_in" placeholder="Due in minutes" required>
+        <button type="submit">Add Task</button>
+    </form>
+</div>
+{% endblock %}

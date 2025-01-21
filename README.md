@@ -35,5 +35,10 @@ Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 3 year
 ---
 
 ### ⚡ Fun Fact
-I’m also a photographer! You’ll often find me exploring nature with my camera when I’m not coding. 🌲📸
+I’m also a [photographer](https://redefined.myportfolio.com/)! You’ll often find me exploring nature with my camera when I’m not coding. 🌲📸
 
+---
+
+Proudest Moment of my Career. Slackbot Launch
+
+![Screenshot 2024-12-23 103311](https://github.com/user-attachments/assets/901b2e1f-768b-4c8f-a1f1-02b9cf79a310)

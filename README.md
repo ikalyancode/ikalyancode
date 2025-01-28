@@ -29,7 +29,6 @@ Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 3 year
 
 ### 💬 Let's Connect!
 - **LinkedIn**: [Connect with me](https://www.linkedin.com/in/knalladimmu)
-- **Portfolio**: [Visit My Portfolio](https://ikalyancode.github.io/portfolio)
 - **Email**: [kalyan.psu@gmail.com](mailto:kalyan.psu@gmail.com)
 
 ---

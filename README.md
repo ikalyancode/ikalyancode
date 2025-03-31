@@ -3,7 +3,7 @@
 Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 3 years of experience building scalable, user-centric applications. I thrive on solving complex problems and creating innovative solutions in the tech space.
 
 ### 🛠️ Technologies & Tools
-- **Languages**: Java, Python, JavaScript, TypeScript
+- **Languages**: Java, Python, JavaScript, TypeScript, Ruby, Rust
 - **Frontend**: React.js, Angular, HTML5, CSS3
 - **Backend**: Spring Boot, Node.js, Flask
 - **Databases**: PostgreSQL, MySQL, SQL Server

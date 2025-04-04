@@ -7,38 +7,70 @@
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
+
   <h1>Kalyan Nalladimmu</h1>
   <p>
-    <strong>Email:</strong> <a href="mailto:kalyan.psu@gmail.com">kalyan.psu@gmail.com</a> |
-    <strong>GitHub:</strong> <a href="https://github.com/ikalyancode">ikalyancode</a> |
-    <strong>LinkedIn:</strong> <a href="https://linkedin.com/in/knalladimmu">knalladimmu</a><br>
-    <strong>Location:</strong> Lakeville, MN • <strong>Phone:</strong> (952) 652-5068
+    <strong>LinkedIn:</strong> <a href="https://linkedin.com/in/knalladimmu" target="_blank">knalladimmu</a>
   </p>
-
-  <a class="download" href="assets/pdf/Kalyan_Nalladimmu_Resume.pdf" download>Download My Resume (PDF)</a>
 
   <section class="section">
     <h2>Professional Summary</h2>
-    <p>Software Engineer with 3+ years of experience... [shortened for brevity]</p>
+    <p>
+      Software Engineer with 3+ years of experience in full stack development, building scalable and high-performance applications across frontend, backend, and CMS platforms. Passionate about problem-solving, clean architecture, and delivering efficient, modern solutions.
+    </p>
   </section>
 
   <section class="section">
     <h2>Technical Skills</h2>
     <ul>
-      <li>Java, Python, Spring Boot...</li>
+      <li><strong>Languages & Frameworks:</strong> Java, JavaScript, Python, React.js, Spring Boot, Rust, Ruby</li>
+      <li><strong>Databases & APIs:</strong> SQL, PostgreSQL, MongoDB, GraphQL, REST APIs</li>
+      <li><strong>Cloud & DevOps:</strong> AWS, Docker, Kubernetes, Jenkins, GitHub Actions</li>
+      <li><strong>Testing & Automation:</strong> New Relic, JMeter, Selenium, Slackbot</li>
+      <li><strong>UI/UX & Tools:</strong> Figma, Adobe Suite, Redux, JIRA, Git, Bitbucket</li>
     </ul>
   </section>
 
   <section class="section">
     <h2>Work Experience</h2>
-    <!-- Verizon roles here -->
+
+    <h3>React Framework Developer | Verizon | Sept 2024 – Jan 2025</h3>
+    <ul>
+      <li>Developed React.js components and AEM templates, optimized UI performance and authoring flexibility.</li>
+      <li>Integrated GraphQL APIs, implemented Redux, code splitting, and lazy loading for performance.</li>
+    </ul>
+
+    <h3>Backend Developer | Verizon | Oct 2022 – Oct 2024</h3>
+    <ul>
+      <li>Built Java microservices using Spring Boot, designed secure APIs with JWT/OAuth.</li>
+      <li>Set up CI/CD with Jenkins & GitHub Actions; introduced Kafka for real-time messaging.</li>
+    </ul>
+
+    <h3>AEM Developer | Verizon | Sept 2021 – Oct 2022</h3>
+    <ul>
+      <li>Created reusable AEM components using Java, Sling, and HTL; integrated RESTful and GraphQL APIs.</li>
+      <li>Automated deployments and enhanced authoring experiences for CMS teams.</li>
+    </ul>
   </section>
 
   <section class="section">
     <h2>Education</h2>
-    <p>Master of Science in Technology, Pittsburg State University</p>
+    <p>
+      <strong>Master of Science in Technology</strong><br>
+      Pittsburg State University (2019 – 2021)<br>
+      Double Emphasis: IT and Web Development
+    </p>
   </section>
 
-  <script src="js/main.js"></script>
+  <section class="section">
+    <h2>Contact Me</h2>
+    <form name="contact" method="POST" data-netlify="true">
+      <p><input type="text" name="name" placeholder="Your Name" required></p>
+      <p><input type="email" name="email" placeholder="Your Email" required></p>
+      <p><textarea name="message" placeholder="Your Message" rows="5" required></textarea></p>
+      <p><button type="submit">Send</button></p>
+    </form>
+  </section>
+
 </body>
 </html>

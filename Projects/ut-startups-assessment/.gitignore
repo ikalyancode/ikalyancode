@@ -1,0 +1,25 @@
+# Gitignore for the overall project
+
+# Backend
+backend/.env
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/.next/ # If using Next.js
+frontend/.vite/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.idea/ # IDE specific files for IntelliJ
+
+# General
+.DS_Store
+.vscode/
+*.log

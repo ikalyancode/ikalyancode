@@ -1,62 +1,129 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kalyan Nalladimmu | Full Stack Engineer</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 40px 20px;
-      background-color: #28282B;
-      color: #f2f2f2;
-      font-family: 'Segoe UI', sans-serif;
-      line-height: 1.7;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 20px;
-    }
-    p {
-      font-size: 16px;
-    }
-    .credit {
-      margin-top: 40px;
-      font-size: 14px;
-      color: #aaa;
-    }
-    a {
-      color: #60a5fa;
-      text-decoration: none;
-    }
-  </style>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kalyan Nalladimmu | Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* For Webkit-based browsers (Chrome, Safari) */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      html.dark ::-webkit-scrollbar-track {
+        background: #0f172a; /* bg-slate-900 */
+      }
+      
+      html:not(.dark) ::-webkit-scrollbar-track {
+        background: #f1f5f9; /* bg-slate-100 */
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background-color: #475569; /* slate-600 */
+        border-radius: 4px;
+      }
+      
+      html.dark ::-webkit-scrollbar-thumb {
+        border: 2px solid #0f172a;
+      }
+      
+      html:not(.dark) ::-webkit-scrollbar-thumb {
+        border: 2px solid #f1f5f9;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: #64748b; /* slate-500 */
+      }
+
+      .falling-text-container {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .falling-text-target {
+        visibility: visible;
+        opacity: 1;
+        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+      }
+
+      .falling-text-target.hidden {
+          visibility: hidden;
+          opacity: 0;
+      }
+
+      .falling-text-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .falling-text-canvas canvas {
+          pointer-events: auto;
+      }
+
+      .falling-text-container .word {
+        position: absolute;
+        transform-origin: center center;
+        will-change: transform, left, top;
+        white-space: nowrap;
+        user-select: none;
+        pointer-events: none;
+        font-weight: 500;
+        line-height: 1;
+        color: inherit; /* Match parent text color */
+      }
+      
+      /* Styles for falling skill pills */
+      section:has(h2:contains("Technical Skills")) .falling-text-container .word {
+        background-color: #e2e8f0; /* bg-slate-200 */
+        color: #0f766e; /* text-cyan-700 */
+        font-size: 0.875rem; /* text-sm */
+        font-weight: 500;
+        padding: 0.25rem 0.75rem; /* px-3 py-1 */
+        border-radius: 9999px; /* rounded-full */
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+        display: inline-block;
+        line-height: 1.25rem;
+      }
+
+      html.dark section:has(h2:contains("Technical Skills")) .falling-text-container .word {
+        background-color: #334155; /* dark:bg-slate-700 */
+        color: #67e8f9; /* dark:text-cyan-300 */
+      }
+
+      section:has(h2:contains("Technical Skills")) .falling-text-container .word.highlighted {
+        background-color: transparent;
+        color: #0891b2; /* text-cyan-600 */
+        font-size: 1.125rem; /* text-lg */
+        font-weight: 600; /* font-semibold */
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      html.dark section:has(h2:contains("Technical Skills")) .falling-text-container .word.highlighted {
+        color: #67e8f9; /* dark:text-cyan-400 */
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "matter-js": "https://esm.sh/matter-js@0.20.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body>
-
-  <h1>Hello! I’m Kalyan Nalladimmu, a Software Engineer based in Lakeville, MN.</h1>
-  <p>
-    Currently, I work as an Adobe Asset Manager Engineer at 3M. Previously, I held multiple engineering roles at Verizon,
-    where I led projects across the full stack — from backend microservices and AEM cloud deployments to
-    frontend React development and CMS authoring enhancements. I enjoy solving complex problems, working with large-scale cloud systems,
-    and building beautiful, efficient software.
-  </p>
-  <p>
-    I’m passionate about automation, performance optimization, and clean, modular design. My experience spans Spring Boot, AEM, GraphQL,
-    AWS, and containerization with Docker and Jenkins pipelines.
-  </p>
-  <p>
-    Outside of coding, you’ll find me exploring the outdoors, reading about new tech, or working on creative video projects.
-  </p>
-  <p>
-    Feel free to <a href="https://linkedin.com/in/knalladimmu" target="_blank">connect with me on LinkedIn</a> — I’d love to hear from you!
-  </p>
-
-  <div class="credit">
-
-  </div>
-
+  <body class="font-sans antialiased">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Hi there! 👋 I'm Kalyankumar Reddy 👨‍💻
 
-Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 3 years of experience building scalable, user-centric applications. I thrive on solving complex problems and creating innovative solutions in the tech space.
+Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 5 years of experience building scalable, user-centric applications. I thrive on solving complex problems and creating innovative solutions in the tech space.
 
 ### 🛠️ Technologies & Tools
 - **Languages**: Java, Python, JavaScript, TypeScript, Ruby, Rust

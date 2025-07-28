@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ResumeData } from '../types';
 import { GitHubIcon, LinkedInIcon } from './icons';
 import { ThemeToggle } from './ThemeToggle';

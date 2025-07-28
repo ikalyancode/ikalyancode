@@ -7,7 +7,7 @@ import { ExperienceCard } from './components/ExperienceCard';
 import { EducationCard } from './components/EducationCard';
 import { ContributionIcon, EducationIcon, ExperienceIcon, SkillsIcon, SummaryIcon } from './components/icons';
 import LetterGlitch from './components/LetterGlitch';
-import SplashCursor from './components/SplashCursor';
+// import SplashCursor from './components/SplashCursor';
 import FallingText from './components/FallingText';
 
 type Theme = 'light' | 'dark';
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   return (
     <>
       {isHacked && <LetterGlitch onExit={handleExitGlitch} />}
-      {isCursorUpgraded && <SplashCursor />}
+      {/* {isCursorUpgraded && <SplashCursor />} */}
       
       <div className={`min-h-screen transition-opacity duration-500 ${isHacked ? 'opacity-0' : 'opacity-100'}`}>
         <Header data={RESUME_DATA} theme={theme} onToggleTheme={handleThemeToggle} />
@@ -150,7 +150,7 @@ const App: React.FC = () => {
         </footer>
       </div>
 
-      {!isHacked && (
+      {/* {!isHacked && (
         <button
           onClick={() => setIsCursorUpgraded(prev => !prev)}
           className="fixed bottom-5 right-5 z-40 bg-cyan-500/80 dark:bg-cyan-400/80 text-white dark:text-slate-900 font-bold py-2 px-4 rounded-full shadow-lg backdrop-blur-sm hover:scale-105 transform transition-all duration-300 ease-in-out"
@@ -158,7 +158,7 @@ const App: React.FC = () => {
         >
           {isCursorUpgraded ? 'Downgrade Cursor 😭' : 'Upgrade Cursor ✨'}
         </button>
-      )}
+      )} */}
     </>
   );
 };

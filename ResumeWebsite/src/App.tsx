@@ -7,7 +7,7 @@ import { ExperienceCard } from './components/ExperienceCard';
 import { EducationCard } from './components/EducationCard';
 import { ContributionIcon, EducationIcon, ExperienceIcon, SkillsIcon, SummaryIcon } from './components/icons';
 import LetterGlitch from './components/LetterGlitch';
-import SplashCursor from './components/SplashCursor';
+// import SplashCursor from './components/SplashCursor';
 import FallingText from './components/FallingText';
 
 type Theme = 'light' | 'dark';
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   return (
     <>
       {isHacked && <LetterGlitch onExit={handleExitGlitch} />}
-      {isCursorUpgraded && <SplashCursor />}
+      {/* {isCursorUpgraded && <SplashCursor />} */}
       
       <div className={`min-h-screen transition-opacity duration-500 ${isHacked ? 'opacity-0' : 'opacity-100'}`}>
         <Header data={RESUME_DATA} theme={theme} onToggleTheme={handleThemeToggle} />

@@ -2,9 +2,18 @@
 <html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kalyan Nalladimmu | Portfolio</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {},
+        }
+      }
+    </script>
     <style>
       /* For Webkit-based browsers (Chrome, Safari) */
       ::-webkit-scrollbar {
@@ -108,15 +117,16 @@
       html.dark section:has(h2:contains("Technical Skills")) .falling-text-container .word.highlighted {
         color: #67e8f9; /* dark:text-cyan-400 */
       }
-
     </style>
   <script type="importmap">
 {
   "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
     "react": "https://esm.sh/react@^19.1.0",
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "matter-js": "https://esm.sh/matter-js@0.20.0"
+    "vite": "https://esm.sh/vite@^7.0.6",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^4.7.0",
+    "matter-js": "https://esm.sh/matter-js@^0.20.0"
   }
 }
 </script>
@@ -124,6 +134,6 @@
 </head>
   <body class="font-sans antialiased">
     <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>

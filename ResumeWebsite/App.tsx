@@ -34,13 +34,12 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-    let timerId: NodeJS.Timeout;
     if (skillsState === 'idle') {
-      timerId = setTimeout(() => {
+      const timerId = setTimeout(() => {
         setSkillsState('falling');
       }, 5000);
+      return () => clearTimeout(timerId);
     }
-    return () => clearTimeout(timerId);
   }, [skillsState]);
 
   const handleThemeToggle = () => {

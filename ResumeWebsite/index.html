@@ -117,6 +117,36 @@
       html.dark section:has(h2:contains("Technical Skills")) .falling-text-container .word.highlighted {
         color: #67e8f9; /* dark:text-cyan-400 */
       }
+
+      /* Style for the exit button in glitch mode */
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translate(-50%, 10px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      .exit-glitch-button {
+          position: fixed;
+          bottom: 3rem;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: transparent;
+          border: 2px solid #61dca3;
+          color: #61dca3;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 1rem;
+          padding: 0.75rem 1.5rem;
+          cursor: pointer;
+          animation: fadeIn 1s ease-out;
+          transition: background-color 0.3s ease, color 0.3s ease;
+          z-index: 101; /* Above the canvas (zIndex 100) */
+          text-shadow: 0 0 5px #61dca3;
+      }
+
+      .exit-glitch-button:hover {
+          background-color: #61dca3;
+          color: #000000;
+          text-shadow: none;
+      }
     </style>
   <script type="importmap">
 {

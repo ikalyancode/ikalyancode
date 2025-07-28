@@ -58,6 +58,11 @@ const App: React.FC = () => {
     setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
+  const handleExitGlitch = () => {
+    setIsHacked(false);
+    setClickCount(0);
+  };
+
   const handleSkillsReset = () => {
     setSkillsKey(k => k + 1);
     setSkillsState('idle');
@@ -68,7 +73,7 @@ const App: React.FC = () => {
 
   return (
     <>
-      {isHacked && <LetterGlitch />}
+      {isHacked && <LetterGlitch onExit={handleExitGlitch} />}
       {isCursorUpgraded && <SplashCursor />}
       
       <div className={`min-h-screen transition-opacity duration-500 ${isHacked ? 'opacity-0' : 'opacity-100'}`}>

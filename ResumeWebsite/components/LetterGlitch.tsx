@@ -1,17 +1,21 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
-const LetterGlitch = ({
-  glitchColors = ["#2b4539", "#61dca3", "#61b3dc"],
-  glitchSpeed = 50,
-  centerVignette = false,
-  outerVignette = true,
-  smooth = true,
-}: {
+interface LetterGlitchProps {
   glitchColors?: string[];
   glitchSpeed?: number;
   centerVignette?: boolean;
   outerVignette?: boolean;
   smooth?: boolean;
+  onExit: () => void;
+}
+
+const LetterGlitch: React.FC<LetterGlitchProps> = ({
+  glitchColors = ["#2b4539", "#61dca3", "#61b3dc"],
+  glitchSpeed = 50,
+  centerVignette = false,
+  outerVignette = true,
+  smooth = true,
+  onExit,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -26,6 +30,7 @@ const LetterGlitch = ({
   const grid = useRef({ columns: 0, rows: 0 });
   const context = useRef<CanvasRenderingContext2D | null>(null);
   const lastGlitchTime = useRef(Date.now());
+  const [showExitButton, setShowExitButton] = useState(false);
 
   const fontSize = 16;
   const charWidth = 10;
@@ -207,12 +212,17 @@ const LetterGlitch = ({
     resizeCanvas();
     animate();
 
+    const exitTimer = setTimeout(() => {
+      setShowExitButton(true);
+    }, 3000);
+
     window.addEventListener("resize", handleResize);
 
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       window.removeEventListener("resize", handleResize);
       clearTimeout(resizeTimeout);
+      clearTimeout(exitTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [glitchSpeed, smooth, glitchColors]);
@@ -258,6 +268,14 @@ const LetterGlitch = ({
       <canvas ref={canvasRef} style={canvasStyle} />
       {outerVignette && ( <div style={outerVignetteStyle}></div> )}
       {centerVignette && ( <div style={centerVignetteStyle}></div> )}
+      {showExitButton && (
+        <button
+          onClick={onExit}
+          className="exit-glitch-button"
+        >
+          &gt; I fell for the trap. [Esc]
+        </button>
+      )}
     </div>
   );
 };

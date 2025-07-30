@@ -9,6 +9,8 @@ type Message = {
     text: string;
 };
 
+const AI_RESPONSE_FALLBACK = "Sorry, I didn't get a response.";
+
 const TypingIndicator: React.FC = () => (
     <div className="flex items-center space-x-2">
         <div className="bg-slate-300 dark:bg-slate-600 w-2 h-2 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
@@ -229,7 +231,7 @@ const Chatbot: React.FC = () => {
 
         try {
             const response = await chatSession.current.sendMessage({ message: input });
-            const aiResponse: Message = { sender: 'ai', text: response.text ?? "Sorry, I didn't get a response." };
+            const aiResponse: Message = { sender: 'ai', text: response.text ?? AI_RESPONSE_FALLBACK };
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
             console.error("Chatbot send message error:", error);

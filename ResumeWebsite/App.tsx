@@ -7,8 +7,8 @@ import { ExperienceCard } from './components/ExperienceCard';
 import { EducationCard } from './components/EducationCard';
 import { ContributionIcon, EducationIcon, ExperienceIcon, SkillsIcon, SummaryIcon } from './components/icons';
 import LetterGlitch from './components/LetterGlitch';
-// import SplashCursor from './components/SplashCursor';
 import FallingText from './components/FallingText';
+import Chatbot from './src/components/Chatbot';
 
 type Theme = 'light' | 'dark';
 
@@ -64,7 +64,7 @@ const App: React.FC = () => {
   };
 
   const handleSkillsReset = () => {
-    setSkillsKey(k => k + 1);
+    setSkillsKey(k => k + 2);
     setSkillsState('idle');
   }
 
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   return (
     <>
       {isHacked && <LetterGlitch onExit={handleExitGlitch} />}
-      {/* {isCursorUpgraded && <SplashCursor />} */}
+      
       
       <div className={`min-h-screen transition-opacity duration-500 ${isHacked ? 'opacity-0' : 'opacity-100'}`}>
         <Header data={RESUME_DATA} theme={theme} onToggleTheme={handleThemeToggle} />
@@ -114,7 +114,7 @@ const App: React.FC = () => {
                       onClick={handleSkillsReset}
                       className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out"
                     >
-                      Reset Skills
+                      Hire Kalyan
                     </button>
                 </div>
               )}
@@ -150,15 +150,8 @@ const App: React.FC = () => {
         </footer>
       </div>
 
-      {/* {!isHacked && (
-        <button
-          onClick={() => setIsCursorUpgraded(prev => !prev)}
-          className="fixed bottom-5 right-5 z-40 bg-cyan-500/80 dark:bg-cyan-400/80 text-white dark:text-slate-900 font-bold py-2 px-4 rounded-full shadow-lg backdrop-blur-sm hover:scale-105 transform transition-all duration-300 ease-in-out"
-          aria-label="Toggle interactive cursor"
-        >
-          {isCursorUpgraded ? 'Downgrade Cursor 😭' : 'Upgrade Cursor ✨'}
-        </button>
-      )} */}
+      <Chatbot />
+      
     </>
   );
 };

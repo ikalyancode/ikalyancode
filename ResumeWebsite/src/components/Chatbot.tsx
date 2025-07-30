@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
 import { RESUME_DATA } from '../../constants';
 import { ChatbotIcon, CloseIcon, SendIcon, MicrophoneIcon, SpeakerOnIcon, SpeakerOffIcon, SoundWaveIcon } from './icons';
-import type { SpeechRecognition } from '../../types';
+import type { SpeechRecognition, SpeechSynthesisErrorEvent } from '../../types';
 
 type Message = {
     sender: 'user' | 'ai';
@@ -134,7 +134,7 @@ const Chatbot: React.FC = () => {
             }
 
             try {
-                const ai = new GoogleGenAI({ apiKey });
+                const ai = new GoogleGenAI({ apiKey: apiKey! });
                 const systemInstruction = `You are a friendly, persuasive, and professional AI assistant for Kalyan Nalladimmu's interactive resume.
                 Your primary goal is to showcase Kalyan's strengths and convince potential employers of his suitability for a role.
                 You must base your answers on the provided resume JSON data.
@@ -201,8 +201,8 @@ const Chatbot: React.FC = () => {
                 setIsBotSpeaking(false);
                 setCurrentlySpeakingMessage(null);
             };
-            utterance.onerror = (e) => {
-                console.error("Speech synthesis error:", e);
+            utterance.onerror = (e: SpeechSynthesisErrorEvent) => {
+                console.error("Speech synthesis error:", e.error);
                 setIsBotSpeaking(false);
                 setCurrentlySpeakingMessage(null);
             };

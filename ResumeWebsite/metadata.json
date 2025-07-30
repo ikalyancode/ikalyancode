@@ -1,6 +1,5 @@
 {
-  "name": "Kalyan Nalladimmu | Interactive Portfolio",
-  "description": "A modern, interactive resume website for Kalyan Nalladimmu, a Full Stack Software Engineer, built with React, TypeScript, and Vite. Showcases skills and experience with engaging animations and visual effects.",
-  "requestFramePermissions": [],
-  "prompt": ""
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

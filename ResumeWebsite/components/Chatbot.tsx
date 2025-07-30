@@ -99,7 +99,7 @@ const Chatbot: React.FC = () => {
 
         try {
             const response = await chatSession.current.sendMessage({ message: input });
-            const aiResponse: Message = { sender: 'ai', text: response.text };
+            const aiResponse: Message = { sender: 'ai', text: response.text ?? "Sorry, I didn't get a response." };
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
             console.error("Chatbot send message error:", error);

@@ -20,9 +20,22 @@ npm install
 ```
 This will create a `node_modules` directory with all the required libraries.
 
-### 2. Run the Development Server
+### 2. Configure Environment Variables
 
-Once the dependencies are installed, you can start the Vite development server:
+This project requires a Google Gemini API key to run the AI Assistant feature.
+
+1.  Create a new file in the root of your project directory named `.env`.
+2.  Add the following line to the file, replacing `YOUR_API_KEY_HERE` with your actual Google Gemini API key:
+
+    ```
+    VITE_API_KEY=YOUR_API_KEY_HERE
+    ```
+
+**Important:** The variable **must** be prefixed with `VITE_` for the application to be able to access it.
+
+### 3. Run the Development Server
+
+Once the dependencies are installed and the `.env` file is configured, you can start the Vite development server:
 
 ```bash
 npm run dev

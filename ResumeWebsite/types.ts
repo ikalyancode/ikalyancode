@@ -42,6 +42,10 @@ export interface SpeechRecognitionErrorEvent extends Event {
   readonly message: string;
 }
 
+export interface SpeechSynthesisErrorEvent extends Event {
+  readonly error: string;
+}
+
 export interface SpeechRecognitionAlternative {
   readonly transcript: string;
   readonly confidence: number;

@@ -39,7 +39,7 @@ const Chatbot: React.FC = () => {
             }
 
             try {
-                const ai = new GoogleGenAI({ apiKey });
+                const ai = new GoogleGenAI({ apiKey: apiKey! });
                 const systemInstruction = `You are a friendly, persuasive, and professional AI assistant for Kalyan Nalladimmu's interactive resume.
                 Your primary goal is to showcase Kalyan's strengths and convince potential employers of his suitability for a role.
                 You must base your answers on the provided resume JSON data.
@@ -99,7 +99,7 @@ const Chatbot: React.FC = () => {
 
         try {
             const response = await chatSession.current.sendMessage({ message: input });
-            const aiResponse: Message = { sender: 'ai', text: response.text ?? "Sorry, I didn't get a response." };
+            const aiResponse: Message = { sender: 'ai', text: response.text };
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
             console.error("Chatbot send message error:", error);

@@ -1,1 +1,1 @@
-{"root":["./src/components/chatbot.tsx","./src/components/icons.tsx"],"version":"5.8.3"}
+{"root":["./src/app.tsx","./src/components/chatbot.tsx","./src/components/icons.tsx"],"version":"5.8.3"}

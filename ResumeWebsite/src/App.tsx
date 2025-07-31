@@ -8,7 +8,7 @@ import { EducationCard } from './components/EducationCard';
 import { ContributionIcon, EducationIcon, ExperienceIcon, SkillsIcon, SummaryIcon } from './components/icons';
 import LetterGlitch from './components/LetterGlitch';
 import FallingText from './components/FallingText';
-import Chatbot from './src/components/Chatbot';
+import Chatbot from './components/Chatbot';
 
 type Theme = 'light' | 'dark';
 

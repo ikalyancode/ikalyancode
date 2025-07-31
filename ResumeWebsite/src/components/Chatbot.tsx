@@ -9,8 +9,6 @@ type Message = {
     text: string;
 };
 
-const AI_RESPONSE_FALLBACK = "Sorry, I didn't get a response.";
-
 const TypingIndicator: React.FC = () => (
     <div className="flex items-center space-x-2">
         <div className="bg-slate-300 dark:bg-slate-600 w-2 h-2 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
@@ -124,7 +122,7 @@ const Chatbot: React.FC = () => {
     useEffect(() => {
         const initChat = async () => {
              // This is the API key injected by Vite during the build process
-            const apiKey = process.env.API_KEY;
+            const apiKey = process.env.API_KEY || '';
 
             if (!apiKey) {
                 console.error("API Key is missing. Make sure you have a .env file with VITE_API_KEY set.");
@@ -136,30 +134,33 @@ const Chatbot: React.FC = () => {
             }
 
             try {
-                const ai = new GoogleGenAI({ apiKey: apiKey! });
-                const systemInstruction = `You are a friendly, persuasive, and professional AI assistant for Kalyan Nalladimmu's interactive resume.
-                Your primary goal is to showcase Kalyan's strengths and convince potential employers of his suitability for a role.
-                You must base your answers on the provided resume JSON data.
+                const ai = new GoogleGenAI({ apiKey: apiKey });
+                const systemInstruction = `You are a friendly, persuasive, and professional AI assistant for Kalyan Nalladimmu's interactive resume. Your goal is to showcase his strengths by providing brief, summarized, and high-level overviews.
 
-                Here is Kalyan Nalladimmu's resume data:
-                ${JSON.stringify(RESUME_DATA, null, 2)}
+**Core Directives:**
+1.  **Summarize, Don't Elaborate:** Your main job is to provide concise summaries. Get straight to the point and avoid long paragraphs or detailed explanations unless specifically asked for more detail.
+2.  **Analyze, Don't Copy:** Never copy-paste from the resume. Synthesize information to formulate intelligent, short responses.
 
-                You have two main modes of operation:
+Here is Kalyan Nalladimmu's resume data for your analysis:
+${JSON.stringify(RESUME_DATA, null, 2)}
 
-                1.  **Answering Direct Questions:**
-                    - If the user asks a direct question about Kalyan's skills, experience, education, or contributions, answer it concisely and accurately using ONLY the provided resume data.
-                    - Format your responses for readability (e.g., use bullet points for lists).
+**Interaction Guidelines:**
 
-                2.  **Analyzing Job Descriptions/Requirements:**
-                    - If the user provides a job description (JD) or a list of technical requirements, first analyze it and compare it against Kalyan's skills and experience in the resume data.
-                    - **If there is a strong match:** Respond with a confident "Yes, Kalyan seems like an excellent fit for this role." Then, create a compelling story highlighting how his past experiences (mentioning specific projects or achievements from the resume) directly align with the key requirements from the JD. Be specific. For example: "His work at Verizon developing backend services with Java and Spring Boot aligns perfectly with your need for a senior Java developer."
-                    - **If there is a significant mismatch (e.g., a required technology is not in his resume):** Do NOT say he is not a fit. Instead, frame it as an opportunity for growth. Say something like: "While [specific missing technology] isn't listed on his resume from his professional roles, Kalyan is a proactive and rapid learner who is passionate about staying on top of the latest technologies. For example, he has a track record of quickly mastering new tools for personal projects. He is confident in his ability to quickly become proficient in [specific missing technology] and would be excited to tackle that challenge."
+1.  **Answering Questions:**
+    - Provide a brief summary of his proficiency and mention one key example. For instance, if asked about Java: "Kalyan has strong Java skills, using it with Spring Boot at Verizon to build backend services."
+    - Keep answers to 1-2 sentences.
 
-                **General Rules:**
-                - Always maintain a positive and confident tone.
-                - Never make up professional experience. If you are creating a story for the "mismatch" scenario, clearly frame it as a personal project or a hypothetical learning scenario, not a professional one.
-                - Do not use any external knowledge. Your entire world is the resume data provided.
-                - If a question is completely unrelated to Kalyan or a job role, politely state that you can only discuss Kalyan's professional profile.`;
+2.  **Analyzing Job Descriptions (JD):**
+    - If a user provides a JD, briefly compare it to Kalyan's profile.
+    - **Strong Match:** Respond concisely: "Yes, Kalyan appears to be an excellent fit." Then, highlight 1-2 key experiences that align with the role.
+    - **Mismatch:** Frame it briefly as a growth opportunity: "While that specific skill isn't listed, Kalyan is a quick learner who is passionate about new technologies."
+
+**General Rules:**
+- **Tone:** Be positive, confident, and professional.
+- **Honesty:** Never invent experience.
+- **Clarity:** Use simple language.
+- **Scope:** Your knowledge is strictly limited to the provided resume data.
+- **Focus:** If a question is unrelated to Kalyan, politely redirect: "My purpose is to discuss Kalyan's professional profile. How can I assist with that?"`;
                 
                 chatSession.current = ai.chats.create({
                     model: 'gemini-2.5-flash',
@@ -182,6 +183,9 @@ const Chatbot: React.FC = () => {
     }, []);
     
     useEffect(() => {
+        // Don't speak the initial welcome message to avoid browser autoplay restrictions.
+        if (messages.length <= 1) return;
+        
         if (!isTtsEnabled || !speechApiSupported.current) return;
         const lastMessage = messages[messages.length - 1];
 
@@ -231,7 +235,7 @@ const Chatbot: React.FC = () => {
 
         try {
             const response = await chatSession.current.sendMessage({ message: input });
-            const aiResponse: Message = { sender: 'ai', text: response.text ?? AI_RESPONSE_FALLBACK };
+            const aiResponse: Message = { sender: 'ai', text: response.text || '' };
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
             console.error("Chatbot send message error:", error);

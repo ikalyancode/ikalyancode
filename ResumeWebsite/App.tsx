@@ -8,6 +8,7 @@ import { EducationCard } from './components/EducationCard';
 import { ContributionIcon, EducationIcon, ExperienceIcon, GitHubIcon, LinkedInIcon, SkillsIcon } from './components/icons';
 import LetterGlitch from './components/LetterGlitch';
 import Prism from './components/Prism';
+import SplashCursor from './components/SplashCursor';
 import Chatbot from './src/components/Chatbot';
 
 type Theme = 'light' | 'dark';
@@ -18,6 +19,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>('dark');
   const [clickCount, setClickCount] = useState(0);
   const [isHacked, setIsHacked] = useState(false);
+  const [fluidCursorEnabled, setFluidCursorEnabled] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -50,6 +52,10 @@ const App: React.FC = () => {
     setClickCount(0);
   };
 
+  const handleCursorToggle = () => {
+    setFluidCursorEnabled((prev) => !prev);
+  };
+
   return (
     <>
       {isHacked && <LetterGlitch onExit={handleExitGlitch} />}
@@ -80,6 +86,15 @@ const App: React.FC = () => {
                     <ContributionIcon />
                     Book a conversation
                   </a>
+                  <button
+                    type="button"
+                    onClick={handleCursorToggle}
+                    className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-white/90 px-5 py-3 text-sm font-semibold text-cyan-700 shadow-sm transition hover:border-cyan-400 hover:text-cyan-600 dark:border-cyan-500/40 dark:bg-slate-900 dark:text-cyan-200 dark:hover:border-cyan-400"
+                    aria-pressed={fluidCursorEnabled}
+                  >
+                    <SkillsIcon />
+                    {fluidCursorEnabled ? 'Disable fluid cursor' : 'Activate fluid cursor'}
+                  </button>
                 </div>
               </div>
               <div className="lg:col-span-2 space-y-4">
@@ -180,6 +195,8 @@ const App: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-500">&copy; {new Date().getFullYear()} Kalyan Nalladimmu. All Rights Reserved.</p>
         </footer>
       </div>
+
+      {fluidCursorEnabled && <SplashCursor TRANSPARENT DYE_RESOLUTION={1024} COLOR_UPDATE_SPEED={12} />}
 
       <Chatbot />
 

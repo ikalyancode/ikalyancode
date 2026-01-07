@@ -1,0 +1,15 @@
+.prism-container {
+  position: relative;
+  width: 100%;
+  min-height: 220px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+@media (min-width: 768px) {
+  .prism-container {
+    min-height: 280px;
+    aspect-ratio: 1 / 1;
+  }
+}

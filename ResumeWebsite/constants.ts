@@ -9,7 +9,7 @@ export const RESUME_DATA: ResumeData = {
     linkedinHandle: "knalladimmu",
     githubHandle: "ikalyancode",
   },
-  summary: "Software Engineer with 5+ years of experience in Full Stack development, building scalable and high-performance applications across frontend, backend, and CMS platforms. Proven ability to learn and adapt to new technologies, delivering efficient solutions across diverse tech stacks. Skilled in optimizing databases, integrating APIs, and leveraging cloud-native tools to enhance system performance. Experienced in automation, CI/CD pipelines, and system monitoring, ensuring seamless deployments and reliability. Passionate about problem-solving and innovation, creating impactful digital experiences.",
+  summary: "Software Engineer with 6+ years of experience in Full Stack development, building scalable and high-performance applications across frontend, backend, and CMS platforms. Proven ability to learn and adapt to new technologies, delivering efficient solutions across diverse tech stacks. Skilled in optimizing databases, integrating APIs, and leveraging cloud-native tools to enhance system performance. Experienced in automation, CI/CD pipelines, and system monitoring, ensuring seamless deployments and reliability. Passionate about problem-solving and innovation, creating impactful digital experiences.",
   skills: [
     { category: "Languages & Frameworks", skills: ["Java", "JavaScript", "Python", ".Net", "Ruby", "Vue.js", "React.js", "Spring Boot", "AEM"] },
     { category: "Databases & APIs", skills: ["SQL", "PostgreSQL", "MongoDB", "GraphQL", "REST APIs", "AEM JCR", "Sling Models"] },
@@ -72,6 +72,28 @@ export const RESUME_DATA: ResumeData = {
   contributions: [
     "Led multiple AEM content releases during high-traffic holiday periods, ensuring seamless deployment and zero downtime.",
     "Built a Python-based Slackbot for automated system alerts and workflow efficiency."
+  ],
+  projects: [
+    {
+      name: "UUID Playground — Trace Anything",
+      tagline: "End-to-end, fully functional UUID observability platform.",
+      role: "Senior Full-Stack Software Engineer & Technical Architect",
+      timeframe: "2024 – Present",
+      summary:
+        "Designed and delivered a production-style application that demonstrates UUID generation, request correlation, and database persistence across a modern web system. The platform showcases real-world traceability patterns used in distributed systems while remaining clean, approachable, and interview-ready.",
+      highlights: [
+        "Implemented UUID v4/v7 generation in the backend with request-scoped correlation IDs surfaced to the UI and stored in JSONB metadata.",
+        "Built a full request lifecycle visualization that maps API ingress, middleware tracing, persistence, and structured logging.",
+        "Delivered a clean, modular architecture with Docker Compose orchestration for frontend, backend, and PostgreSQL."
+      ],
+      applicationTabs: ["UUID Generator", "UUID Explorer", "Request Trace Viewer"],
+      architecture: [
+        "React UI issues API requests and renders timeline-driven telemetry.",
+        "FastAPI service generates UUIDs, attaches X-Request-ID, and emits JSON logs.",
+        "PostgreSQL stores UUIDs as primary keys with indexed request metadata."
+      ],
+      techStack: ["React (Vite)", "TypeScript", "Tailwind CSS", "Framer Motion", "FastAPI", "PostgreSQL", "Docker"]
+    }
   ],
   education: [
     {

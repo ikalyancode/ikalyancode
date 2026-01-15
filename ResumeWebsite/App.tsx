@@ -113,9 +113,6 @@ const App: React.FC = () => {
                   >
                     <Prism animationType="hover" bloom={1.2} glow={1.2} scale={3.2} colorFrequency={1.2} />
                     <span className={`pointer-events-none absolute inset-0 rounded-xl border border-cyan-300/40 opacity-0 transition ${prismPulse ? 'animate-ping opacity-60' : ''}`} />
-                    <span className={`pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200/70 transition dark:bg-slate-900/80 dark:text-slate-200 dark:ring-slate-700/70 ${fluidCursorEnabled ? 'text-cyan-700 dark:text-cyan-300' : ''}`}>
-                      Click prism to {fluidCursorEnabled ? 'disable' : 'activate'} fluid cursor
-                    </span>
                   </button>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">

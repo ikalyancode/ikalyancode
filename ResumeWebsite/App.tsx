@@ -14,7 +14,7 @@ import Chatbot from './src/components/Chatbot';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
-  const { summary, skills, experience, contributions, projects, education } = RESUME_DATA;
+  const { summary, skills, experience, contributions, education } = RESUME_DATA;
 
   const [theme, setTheme] = useState<Theme>('dark');
   const [clickCount, setClickCount] = useState(0);

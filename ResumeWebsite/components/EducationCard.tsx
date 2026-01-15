@@ -7,13 +7,18 @@ interface EducationCardProps {
 
 export const EducationCard: React.FC<EducationCardProps> = ({ education }) => {
     return (
-        <div className="bg-slate-100 dark:bg-slate-800 p-5 rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-1">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white">{education.degree}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-mono">{education.period}</p>
+        <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/80 p-6 shadow-lg shadow-cyan-900/10">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-300">Education</p>
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{education.degree}</h3>
+                    <p className="text-cyan-700 dark:text-cyan-300 font-semibold">{education.university}</p>
+                </div>
+                <div className="inline-flex items-center rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-1 text-sm font-semibold text-white shadow-md">
+                    {education.period}
+                </div>
             </div>
-            <p className="text-cyan-600 dark:text-cyan-400 font-semibold text-md mb-2">{education.university}</p>
-            <p className="text-slate-600 dark:text-slate-300">{education.emphasis}</p>
+            <p className="mt-3 text-slate-600 dark:text-slate-300">{education.emphasis}</p>
         </div>
     );
 }

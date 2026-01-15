@@ -1,12 +1,14 @@
 import React from 'react';
 import type { ResumeData } from '../types';
-import { GitHubIcon, LinkedInIcon } from './icons';
+import { CursorIcon, GitHubIcon, LinkedInIcon } from './icons';
 import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
     data: ResumeData;
     theme: 'dark' | 'light';
     onToggleTheme: () => void;
+    fluidCursorEnabled: boolean;
+    onToggleFluidCursor: () => void;
 }
 
 const ContactLink: React.FC<{ href: string; icon: React.ReactNode; text: string; }> = ({ href, icon, text }) => (
@@ -22,7 +24,7 @@ const ContactLink: React.FC<{ href: string; icon: React.ReactNode; text: string;
 );
 
 
-export const Header: React.FC<HeaderProps> = ({ data, theme, onToggleTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ data, theme, onToggleTheme, fluidCursorEnabled, onToggleFluidCursor }) => {
     const { name, title, contact } = data;
     
     return (
@@ -35,6 +37,15 @@ export const Header: React.FC<HeaderProps> = ({ data, theme, onToggleTheme }) =>
                 <div className="flex items-center gap-4 text-sm">
                    <ContactLink href={contact.linkedin} icon={<LinkedInIcon />} text={contact.linkedinHandle} />
                    <ContactLink href={contact.github} icon={<GitHubIcon />} text={contact.githubHandle} />
+                   <button
+                       type="button"
+                       onClick={onToggleFluidCursor}
+                       aria-pressed={fluidCursorEnabled}
+                       className={`flex items-center justify-center rounded-full border px-3 py-2 transition ${fluidCursorEnabled ? 'border-cyan-400 text-cyan-600 shadow-sm shadow-cyan-500/30' : 'border-slate-200 text-slate-500 hover:text-cyan-500 dark:border-slate-700 dark:text-slate-400 dark:hover:text-cyan-400'}`}
+                       title={fluidCursorEnabled ? 'Deactivate fluid cursor' : 'Activate fluid cursor'}
+                   >
+                       <CursorIcon />
+                   </button>
                    <ThemeToggle theme={theme} onToggle={onToggleTheme} />
                 </div>
             </div>

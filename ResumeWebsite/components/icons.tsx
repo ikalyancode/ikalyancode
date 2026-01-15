@@ -74,6 +74,12 @@ export const ChatbotIcon = () => (
     </svg>
 );
 
+export const CursorIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M4 2.5c0-.55.6-.9 1.08-.61l14.5 8.8c.5.3.47 1.02-.05 1.28l-6.02 2.94a.75.75 0 00-.4.4l-2.94 6.02c-.26.52-.98.55-1.28.05l-4.8-7.9A1.5 1.5 0 014 12.76V2.5z" />
+    </svg>
+);
+
 export const CloseIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

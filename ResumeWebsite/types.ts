@@ -18,6 +18,18 @@ export interface Education {
     emphasis: string;
 }
 
+export interface Project {
+  name: string;
+  tagline: string;
+  role: string;
+  timeframe: string;
+  summary: string;
+  highlights: string[];
+  applicationTabs: string[];
+  architecture: string[];
+  techStack: string[];
+}
+
 export interface ResumeData {
   name: string;
   title: string;
@@ -31,6 +43,7 @@ export interface ResumeData {
   skills: SkillCategory[];
   experience: Experience[];
   contributions: string[];
+  projects: Project[];
   education: Education[];
 }
 

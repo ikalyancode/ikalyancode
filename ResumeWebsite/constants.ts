@@ -62,16 +62,6 @@ export const RESUME_DATA: ResumeData = {
         "Developed and managed AEM OSGi services and configurations using Java, leveraging Declarative Services (SCR annotations), service interfaces, and run-mode–specific configs to support scalable, environment-agnostic backend integrations and business logic.",
         "Monitored and tuned backend and supporting services using Google Cloud Monitoring and Splunk, analyzing latency, throughput, and API behavior to maintain performance and reliability."
       ]
-    },
-    {
-      id: 4,
-      role: "Software Engineer Intern",
-      company: "Verizon",
-      period: "Jan 2020 – May 2021",
-      description: [
-        "Built small-scale web applications using Java, Python, and HTML/CSS, practicing object-oriented programming and clean code principles.",
-        "Assisted in debugging and enhancing existing codebases, gaining hands-on experience with version control using Git and participating in Agile development cycles."
-      ]
     }
   ],
   contributions: [

@@ -20,7 +20,6 @@ const App: React.FC = () => {
   const [clickCount, setClickCount] = useState(0);
   const [isHacked, setIsHacked] = useState(false);
   const [fluidCursorEnabled, setFluidCursorEnabled] = useState(false);
-  const [prismPulse, setPrismPulse] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -57,25 +56,13 @@ const App: React.FC = () => {
     setFluidCursorEnabled((prev) => !prev);
   };
 
-  const handlePrismToggle = () => {
-    handleCursorToggle();
-    setPrismPulse(true);
-    window.setTimeout(() => setPrismPulse(false), 600);
-  };
-
   return (
     <>
       {isHacked && <LetterGlitch onExit={handleExitGlitch} />}
 
       <div className={`min-h-screen bg-gradient-to-br from-white via-slate-50 to-sky-50 text-slate-800 transition-opacity duration-500 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100 ${isHacked ? 'opacity-0' : 'opacity-100'}`}>
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(59,130,246,0.08),transparent_25%),radial-gradient(circle_at_82%_0%,rgba(236,72,153,0.08),transparent_22%),radial-gradient(circle_at_40%_90%,rgba(34,211,238,0.08),transparent_18%)]" />
-        <Header
-          data={RESUME_DATA}
-          theme={theme}
-          onToggleTheme={handleThemeToggle}
-          fluidCursorEnabled={fluidCursorEnabled}
-          onToggleFluidCursor={handleCursorToggle}
-        />
+        <Header data={RESUME_DATA} theme={theme} onToggleTheme={handleThemeToggle} />
         <main className="relative container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 space-y-14">
 
           <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-sky-50 to-cyan-50 p-8 sm:p-12 shadow-2xl dark:border-slate-800 dark:from-slate-900 dark:via-slate-900/70 dark:to-slate-950">
@@ -99,24 +86,26 @@ const App: React.FC = () => {
                     <ContributionIcon />
                     Book a conversation
                   </a>
+                  <button
+                    type="button"
+                    onClick={handleCursorToggle}
+                    className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-white/90 px-5 py-3 text-sm font-semibold text-cyan-700 shadow-sm transition hover:border-cyan-400 hover:text-cyan-600 dark:border-cyan-500/40 dark:bg-slate-900 dark:text-cyan-200 dark:hover:border-cyan-400"
+                    aria-pressed={fluidCursorEnabled}
+                  >
+                    <SkillsIcon />
+                    {fluidCursorEnabled ? 'Disable fluid cursor' : 'Activate fluid cursor'}
+                  </button>
                 </div>
               </div>
               <div className="lg:col-span-2 space-y-4">
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-xl dark:border-slate-800/80 dark:bg-slate-900/70">
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-100/50 via-transparent to-purple-100/40 blur-3xl dark:from-cyan-900/30 dark:to-purple-900/30" />
-                  <button
-                    type="button"
-                    onClick={handlePrismToggle}
-                    className={`group relative w-full overflow-hidden rounded-xl border border-white/80 bg-white shadow-lg shadow-cyan-900/10 ring-1 ring-cyan-100/80 transition-transform duration-300 hover:scale-[1.01] dark:border-slate-800 dark:bg-slate-950 dark:ring-cyan-900/40 ${fluidCursorEnabled ? 'ring-2 ring-cyan-400/60' : ''}`}
-                    aria-pressed={fluidCursorEnabled}
-                    title={fluidCursorEnabled ? 'Deactivate fluid cursor' : 'Activate fluid cursor'}
-                  >
-                    <Prism animationType="hover" bloom={1.2} glow={1.2} scale={3.2} colorFrequency={1.2} transparent={false} />
-                    <span className={`pointer-events-none absolute inset-0 rounded-xl border border-cyan-300/40 opacity-0 transition ${prismPulse ? 'animate-ping opacity-60' : ''}`} />
-                  </button>
+                  <div className="relative rounded-xl border border-white/80 bg-white shadow-lg shadow-cyan-900/10 ring-1 ring-cyan-100/80 dark:border-slate-800 dark:bg-slate-950 dark:ring-cyan-900/40">
+                    <Prism animationType="hover" bloom={1.2} glow={1.2} scale={3.2} colorFrequency={1.2} />
+                  </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {[{ label: 'Years of building', value: '6+', detail: 'Full stack delivery across web, CMS, and cloud.' }, { label: 'Tech mastered', value: '20+', detail: 'Languages, frameworks, and delivery tooling.' }, { label: 'Deployments shipped', value: '50+', detail: 'Customer-facing launches with zero downtime.' }, { label: 'Collaboration score', value: 'A+', detail: 'Trusted partner to design, product, and ops.' }].map((stat) => (
+                  {[{ label: 'Years of building', value: '5+', detail: 'Full stack delivery across web, CMS, and cloud.' }, { label: 'Tech mastered', value: '20+', detail: 'Languages, frameworks, and delivery tooling.' }, { label: 'Deployments shipped', value: '50+', detail: 'Customer-facing launches with zero downtime.' }, { label: 'Collaboration score', value: 'A+', detail: 'Trusted partner to design, product, and ops.' }].map((stat) => (
                     <div key={stat.label} className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-lg shadow-cyan-900/10 dark:border-slate-800/80 dark:bg-slate-900/70">
                       <p className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">{stat.label}</p>
                       <p className="text-3xl font-black text-slate-900 dark:text-white">{stat.value}</p>
@@ -166,70 +155,6 @@ const App: React.FC = () => {
                     <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Impact</p>
                   </div>
                   <p className="mt-2 text-base text-slate-700 dark:text-slate-100">{contribution}</p>
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Projects" icon={<SkillsIcon />}>
-            <div className="grid gap-6">
-              {projects.map((project) => (
-                <div key={project.name} className="rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-xl shadow-cyan-900/10 dark:border-slate-800/70 dark:bg-slate-900/60">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-300">{project.timeframe}</p>
-                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{project.name}</h3>
-                      <p className="text-slate-600 dark:text-slate-300">{project.tagline}</p>
-                    </div>
-                    <span className="rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-md">
-                      {project.role}
-                    </span>
-                  </div>
-                  <p className="mt-4 text-base text-slate-700 dark:text-slate-200">{project.summary}</p>
-                  <div className="mt-6 grid gap-6 lg:grid-cols-3">
-                    <div>
-                      <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Application Tabs</h4>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {project.applicationTabs.map((tab) => (
-                          <span key={tab} className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 dark:border-cyan-500/40 dark:bg-slate-900 dark:text-cyan-200">
-                            {tab}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Architecture</h4>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                        {project.architecture.map((detail) => (
-                          <li key={detail} className="flex gap-2">
-                            <span className="mt-1 h-2 w-2 rounded-full bg-cyan-500" />
-                            <span>{detail}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Highlights</h4>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-                        {project.highlights.map((highlight) => (
-                          <li key={highlight} className="flex gap-2">
-                            <span className="mt-1 h-2 w-2 rounded-full bg-purple-500" />
-                            <span>{highlight}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="mt-6">
-                    <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">Technology Stack</h4>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {project.techStack.map((tech) => (
-                        <span key={tech} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>

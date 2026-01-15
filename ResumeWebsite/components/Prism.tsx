@@ -202,12 +202,7 @@ const Prism = ({
           col = clamp(hueRotation(uHueShift) * col, 0.0, 1.0);
         }
 
-        vec2 uv = gl_FragCoord.xy / iResolution.xy;
-        vec3 base = mix(vec3(0.12, 0.2, 0.4), vec3(0.9, 0.6, 0.35), uv.y);
-        float mixAmount = clamp(o.a * 1.15 + 0.2, 0.0, 1.0);
-        col = mix(base, col, mixAmount);
-
-        gl_FragColor = vec4(col, 1.0);
+        gl_FragColor = vec4(col, o.a);
       }
     `;
 

@@ -121,11 +121,13 @@ const Chatbot: React.FC = () => {
 
     useEffect(() => {
         const initChat = async () => {
-             // This is the API key injected by Vite during the build process
-            const apiKey = process.env.API_KEY || '';
+            // Read API key from Vite env (`VITE_API_KEY`).
+            // Fallbacks: process.env (for some builds) or a window-injected __ENV (some hosts)
+            const apiKey = ((typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_KEY) as string)
+                || (process.env && (process.env as any).API_KEY) || (window as any).__ENV?.VITE_API_KEY || '';
 
             if (!apiKey) {
-                console.error("API Key is missing. Make sure you have a .env file with VITE_API_KEY set.");
+                console.error("API Key is missing. Make sure you have a .env file with VITE_API_KEY set and it's available at build time.");
                 setMessages([{
                     sender: 'ai',
                     text: "Sorry, the AI assistant is not configured. The API Key is missing."

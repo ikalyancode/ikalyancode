@@ -137,6 +137,7 @@ const Chatbot: React.FC = () => {
 
             try {
                 const ai = new GoogleGenAI({ apiKey: apiKey });
+                const model = ((typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_MODEL) as string) || 'gemini-2.5-flash';
                 const systemInstruction = `You are a friendly, persuasive, and professional AI assistant for Kalyan Nalladimmu's interactive resume. Your goal is to showcase his strengths by providing brief, summarized, and high-level overviews.
 
 **Core Directives:**
@@ -165,7 +166,7 @@ ${JSON.stringify(RESUME_DATA, null, 2)}
 - **Focus:** If a question is unrelated to Kalyan, politely redirect: "My purpose is to discuss Kalyan's professional profile. How can I assist with that?"`;
                 
                 chatSession.current = ai.chats.create({
-                    model: 'gemini-2.5-flash',
+                    model,
                     config: { systemInstruction },
                 });
 
@@ -173,11 +174,14 @@ ${JSON.stringify(RESUME_DATA, null, 2)}
                     sender: 'ai',
                     text: "Hello! Ask me about Kalyan, or paste a job description to see if he's a good fit."
                 }]);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to initialize chatbot:", error);
-                 setMessages([{
+                const userFacing = (error?.status === 401 || error?.status === 403 || (error?.message && /unauth|401|403/i.test(error.message)))
+                    ? "The AI assistant couldn't be initialized: API key missing or invalid. Check your deployment env vars."
+                    : "Sorry, the AI assistant is currently unavailable. Check the console for details.";
+                setMessages([{
                     sender: 'ai',
-                    text: "Sorry, the AI assistant is currently unavailable."
+                    text: userFacing
                 }]);
             }
         };
@@ -239,9 +243,15 @@ ${JSON.stringify(RESUME_DATA, null, 2)}
             const response = await chatSession.current.sendMessage({ message: input });
             const aiResponse: Message = { sender: 'ai', text: response.text! };
             setMessages(prev => [...prev, aiResponse]);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Chatbot send message error:", error);
-            const errorMessage: Message = { sender: 'ai', text: "I'm having trouble connecting right now. Please try again in a moment." };
+            let errorText = "I'm having trouble connecting right now. Please try again in a moment.";
+            if (error?.status === 401 || error?.status === 403 || (error?.message && /unauth|401|403/i.test(error.message))) {
+                errorText = "Authentication error: API key missing or invalid. Check deployment environment variables.";
+            } else if (error?.message) {
+                errorText = `Connection error: ${error.message}`;
+            }
+            const errorMessage: Message = { sender: 'ai', text: errorText };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);

@@ -9,7 +9,7 @@ export const RESUME_DATA: ResumeData = {
     linkedinHandle: "knalladimmu",
     githubHandle: "ikalyancode",
   },
-  summary: "Software Engineer with 5+ years of experience in Full Stack development, building scalable and high-performance applications across frontend, backend, and CMS platforms. Proven ability to learn and adapt to new technologies, delivering efficient solutions across diverse tech stacks. Skilled in optimizing databases, integrating APIs, and leveraging cloud-native tools to enhance system performance. Experienced in automation, CI/CD pipelines, and system monitoring, ensuring seamless deployments and reliability. Passionate about problem-solving and innovation, creating impactful digital experiences.",
+  summary: "Software Engineer with 6+ years of experience in Full Stack development, building scalable and high-performance applications across frontend, backend, and CMS platforms. Proven ability to learn and adapt to new technologies, delivering efficient solutions across diverse tech stacks. Skilled in optimizing databases, integrating APIs, and leveraging cloud-native tools to enhance system performance. Experienced in automation, CI/CD pipelines, and system monitoring, ensuring seamless deployments and reliability. Passionate about problem-solving and innovation, creating impactful digital experiences.",
   skills: [
     { category: "Languages & Frameworks", skills: ["Java", "JavaScript", "Python", ".Net", "Ruby", "Vue.js", "React.js", "Spring Boot", "AEM"] },
     { category: "Databases & APIs", skills: ["SQL", "PostgreSQL", "MongoDB", "GraphQL", "REST APIs", "AEM JCR", "Sling Models"] },

@@ -105,7 +105,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {[{ label: 'Years of building', value: '5+', detail: 'Full stack delivery across web, CMS, and cloud.' }, { label: 'Tech mastered', value: '20+', detail: 'Languages, frameworks, and delivery tooling.' }, { label: 'Deployments shipped', value: '50+', detail: 'Customer-facing launches with zero downtime.' }, { label: 'Collaboration score', value: 'A+', detail: 'Trusted partner to design, product, and ops.' }].map((stat) => (
+                  {[{ label: 'Years of building', value: '6+', detail: 'Full stack delivery across web, CMS, and cloud.' }, { label: 'Tech mastered', value: '20+', detail: 'Languages, frameworks, and delivery tooling.' }, { label: 'Deployments shipped', value: '50+', detail: 'Customer-facing launches with zero downtime.' }, { label: 'Collaboration score', value: 'A+', detail: 'Trusted partner to design, product, and ops.' }].map((stat) => (
                     <div key={stat.label} className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-lg shadow-cyan-900/10 dark:border-slate-800/80 dark:bg-slate-900/70">
                       <p className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">{stat.label}</p>
                       <p className="text-3xl font-black text-slate-900 dark:text-white">{stat.value}</p>

@@ -1,0 +1,8 @@
+# Netlify deploys kalyanstack.com from the kalyanstack-site/ folder.
+[build]
+  base    = "kalyanstack-site"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"

@@ -30,6 +30,13 @@ export interface TouchState {
   lift: boolean;
 }
 
+interface InputState {
+  throttle: number;
+  steer: number;
+  lift: boolean;
+  drop: boolean;
+  boostTap: boolean;
+}
 const RAMP_X0 = 0; // ramp curve starts here (flat approach for x < x0)
 const RAMP_R = 30; // curve radius
 const RAMP_W = 16; // ramp width
@@ -44,6 +51,8 @@ const tmpM = new THREE.Matrix4();
 
 export class RoadsterRamp {
   touch: TouchState = { left: false, right: false, gas: false, brake: false, boost: false, lift: false };
+  /** When true, an autopilot drives the car (playtesting / demo). Set via constructor opts. */
+  demoMode = false;
 
   private container: HTMLElement;
   private opts: RoadsterRampOptions;
@@ -75,10 +84,14 @@ export class RoadsterRamp {
   private fanOn = true;
   private lampsOn = true;
   private camMode = 0;
-  private camPos = new THREE.Vector3(-120, 8, 14);
+  private camPos = new THREE.Vector3(-46, 26, 92);
   private lastBoost = -10;
   private elapsed = 0;
   private muted = false;
+  private smoothLatA = 0;
+  private smoothLongA = 0;
+  private prevFwd = 0;
+  private landingDip = 0;
 
   // --- particles ---
   private pGeo!: THREE.BufferGeometry;
@@ -355,81 +368,98 @@ export class RoadsterRamp {
   /* ----------------------------------- car ----------------------------------- */
 
   private buildCar() {
-    // Sleek white coupe, modeled facing +x, ~4.6 long.
+    // Gen-2 Tesla Roadster: very low, wide, cab-rearward fastback. Faces +x.
     const paint = new THREE.MeshPhysicalMaterial({
       color: 0xf2f4f6,
-      roughness: 0.22,
+      roughness: 0.2,
       metalness: 0.08,
       clearcoat: 1,
-      clearcoatRoughness: 0.08,
+      clearcoatRoughness: 0.06,
     });
     const glass = new THREE.MeshPhysicalMaterial({
       color: 0x0b1018,
-      roughness: 0.06,
-      metalness: 0.85,
+      roughness: 0.05,
+      metalness: 0.9,
     });
-    const darkTrim = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.55 });
+    const darkTrim = new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.5 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0x9aa1ab, roughness: 0.28, metalness: 0.95 });
 
-    // Body: extruded side profile.
+    // Body: sculpted side profile, 4.75 long, 2.0 wide, roofline under 1.0.
     const s = new THREE.Shape();
-    s.moveTo(-2.3, 0.34);
-    s.lineTo(2.28, 0.34);
-    s.quadraticCurveTo(2.42, 0.5, 2.3, 0.62); // nose
-    s.quadraticCurveTo(1.5, 0.72, 1.05, 0.8); // hood
-    s.quadraticCurveTo(0.45, 0.92, 0.1, 1.0); // windshield base
-    s.quadraticCurveTo(-0.6, 1.08, -1.15, 0.98); // roof
-    s.quadraticCurveTo(-1.9, 0.9, -2.28, 0.78); // tail
-    s.quadraticCurveTo(-2.38, 0.55, -2.3, 0.34);
+    s.moveTo(-2.375, 0.3);
+    s.lineTo(2.2, 0.3);
+    s.quadraticCurveTo(2.42, 0.34, 2.4, 0.46); // low nose tip
+    s.quadraticCurveTo(2.1, 0.56, 1.55, 0.6); // nose top / hood leading
+    s.quadraticCurveTo(0.9, 0.64, 0.45, 0.74); // long low hood
+    s.quadraticCurveTo(0.05, 0.86, -0.35, 0.94); // windshield
+    s.quadraticCurveTo(-0.85, 1.0, -1.25, 0.94); // roof peak
+    s.quadraticCurveTo(-1.8, 0.86, -2.25, 0.72); // fastback slope
+    s.quadraticCurveTo(-2.42, 0.62, -2.375, 0.48); // kamm tail
+    s.lineTo(-2.375, 0.3);
     const bodyGeo = new THREE.ExtrudeGeometry(s, {
-      depth: 1.86,
+      depth: 1.84,
       bevelEnabled: true,
-      bevelThickness: 0.1,
-      bevelSize: 0.08,
-      bevelSegments: 2,
+      bevelThickness: 0.09,
+      bevelSize: 0.07,
+      bevelSegments: 3,
       steps: 1,
     });
-    bodyGeo.translate(0, 0, -0.93);
+    bodyGeo.translate(0, 0, -0.92);
     this.car.add(new THREE.Mesh(bodyGeo, paint));
 
-    // Glass canopy.
-    const canopy = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), glass);
-    canopy.scale.set(1.05, 0.42, 0.78);
-    canopy.position.set(-0.25, 0.92, 0);
+    // Glasshouse: big wraparound canopy, cab-rearward.
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), glass);
+    canopy.scale.set(1.28, 0.46, 0.8);
+    canopy.position.set(-0.42, 0.82, 0);
     this.car.add(canopy);
 
-    // Wheels.
-    const wheelGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.36, 20);
-    wheelGeo.rotateX(Math.PI / 2);
-    const hubGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.38, 12);
-    hubGeo.rotateX(Math.PI / 2);
-    const hubMat = new THREE.MeshStandardMaterial({ color: 0x6a7078, roughness: 0.3, metalness: 0.9 });
+    // Wheels: dark tire + silver rim + red caliper.
+    const tireGeo = new THREE.CylinderGeometry(0.47, 0.47, 0.34, 24);
+    tireGeo.rotateX(Math.PI / 2);
+    const rimGeo = new THREE.CylinderGeometry(0.27, 0.27, 0.36, 16);
+    rimGeo.rotateX(Math.PI / 2);
+    const spokeGeo = new THREE.BoxGeometry(0.38, 0.09, 0.5);
+    const caliperGeo = new THREE.BoxGeometry(0.16, 0.2, 0.12);
+    const caliperMat = new THREE.MeshBasicMaterial({ color: 0xc01818 });
     for (const [wx, wz] of [
-      [1.45, 0.98],
-      [1.45, -0.98],
-      [-1.45, 0.98],
-      [-1.45, -0.98],
+      [1.5, 1.0],
+      [1.5, -1.0],
+      [-1.5, 1.0],
+      [-1.5, -1.0],
     ]) {
-      const wheel = new THREE.Mesh(wheelGeo, darkTrim);
-      wheel.position.set(wx, 0.44, wz);
-      const hub = new THREE.Mesh(hubGeo, hubMat);
-      hub.position.copy(wheel.position);
-      this.car.add(wheel, hub);
+      const wheel = new THREE.Mesh(tireGeo, darkTrim);
+      wheel.position.set(wx, 0.47, wz);
+      const rim = new THREE.Mesh(rimGeo, rimMat);
+      rim.position.copy(wheel.position);
+      this.car.add(wheel, rim);
+      for (let i = 0; i < 5; i++) {
+        const spoke = new THREE.Mesh(spokeGeo, rimMat);
+        spoke.position.copy(wheel.position);
+        spoke.rotation.z = (i / 5) * Math.PI * 2;
+        spoke.scale.set(0.32, 1, 1);
+        this.car.add(spoke);
+      }
+      const caliper = new THREE.Mesh(caliperGeo, caliperMat);
+      caliper.position.set(wx - 0.18, 0.52, wz + (wz > 0 ? -0.12 : 0.12));
+      this.car.add(caliper);
       this.wheels.push(wheel);
     }
 
-    // Full-width red taillight bar.
+    // Full-width rear light bar.
     const tail = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.14, 1.72),
+      new THREE.BoxGeometry(0.07, 0.11, 1.78),
       new THREE.MeshBasicMaterial({ color: 0xff1e1e })
     );
-    tail.position.set(-2.36, 0.72, 0);
+    tail.position.set(-2.4, 0.66, 0);
     this.car.add(tail);
 
-    // Headlights (emissive boxes + real spotlights, toggled with L).
-    for (const hz of [-0.62, 0.62]) {
+    // Slim angular LED headlights sweeping back from the nose.
+    for (const hz of [-0.68, 0.68]) {
       const lampMat = new THREE.MeshBasicMaterial({ color: 0xd9ecff });
-      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.42), lampMat);
-      lamp.position.set(2.36, 0.58, hz);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.09, 0.3), lampMat);
+      lamp.position.set(2.18, 0.56, hz);
+      lamp.rotation.y = hz > 0 ? -0.5 : 0.5;
+      lamp.rotation.z = 0.08;
       this.car.add(lamp);
       this.headlampMats.push(lampMat);
       const spot = new THREE.SpotLight(0xcfe4ff, 350, 55, 0.55, 0.45, 1.6);
@@ -439,20 +469,45 @@ export class RoadsterRamp {
       this.headSpots.push(spot);
     }
 
+    // Front splitter + side skirts (dark aero).
+    const splitter = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 1.9), darkTrim);
+    splitter.position.set(2.15, 0.26, 0);
+    this.car.add(splitter);
+    for (const sz of [-0.98, 0.98]) {
+      const skirt = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.09, 0.12), darkTrim);
+      skirt.position.set(-0.1, 0.27, sz);
+      this.car.add(skirt);
+    }
+    // Rear diffuser with vertical fins.
+    const diffuser = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.16, 1.8), darkTrim);
+    diffuser.position.set(-2.25, 0.3, 0);
+    this.car.add(diffuser);
+    for (const fz of [-0.6, -0.2, 0.2, 0.6]) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.05), darkTrim);
+      fin.position.set(-2.25, 0.3, fz);
+      this.car.add(fin);
+    }
+    // Side mirrors.
+    for (const mz of [-1.06, 1.06]) {
+      const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.14), paint);
+      mirror.position.set(0.35, 0.86, mz);
+      this.car.add(mirror);
+    }
+
     // Corner thruster pods with glowing tips.
-    const podGeo = new THREE.CylinderGeometry(0.14, 0.18, 0.5, 10);
+    const podGeo = new THREE.CylinderGeometry(0.13, 0.17, 0.5, 10);
     podGeo.rotateZ(Math.PI / 2);
     for (const [px, pz] of [
-      [1.7, 1.02],
-      [1.7, -1.02],
-      [-1.7, 1.02],
-      [-1.7, -1.02],
+      [1.75, 1.04],
+      [1.75, -1.04],
+      [-1.75, 1.04],
+      [-1.75, -1.04],
     ]) {
       const pod = new THREE.Mesh(podGeo, darkTrim);
-      pod.position.set(px, 0.42, pz);
+      pod.position.set(px, 0.4, pz);
       const tipMat = new THREE.MeshBasicMaterial({ color: 0x1a2530 });
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), tipMat);
-      tip.position.set(px - 0.28, 0.42, pz);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), tipMat);
+      tip.position.set(px - 0.28, 0.4, pz);
       this.car.add(pod, tip);
       this.thrusterTips.push(tipMat);
     }
@@ -544,8 +599,8 @@ export class RoadsterRamp {
     this.pGeo.attributes.color.needsUpdate = true;
   }
 
-  /** Exhaust burst behind the car (boost / thrusters). */
-  private exhaust(n: number, spread: number, power: number, hot: boolean) {
+  /** Exhaust burst behind the car. Boost = tire smoke (gray-white), lift = cold-gas plume. */
+  private exhaust(n: number, spread: number, power: number, smoke: boolean) {
     const f = this.forward();
     for (let i = 0; i < n; i++) {
       const bx = this.pos.x - f.x * 2.4 + (Math.random() - 0.5) * 0.8;
@@ -553,12 +608,12 @@ export class RoadsterRamp {
       const bz = this.pos.z - f.z * 2.4 + (Math.random() - 0.5) * 1.6;
       const a = Math.random() * Math.PI * 2;
       const sp = Math.random() * spread;
-      if (hot) {
-        // orange-white flame
-        const w = Math.random();
+      if (smoke) {
+        // Tire smoke: soft gray-white puffs that billow up and linger.
+        const g = 0.55 + Math.random() * 0.3;
         this.spawnParticle(bx, by, bz,
-          -f.x * power + Math.cos(a) * sp, (Math.random() - 0.3) * 2, -f.z * power + Math.sin(a) * sp,
-          0.5 + Math.random() * 0.5, 1, 0.45 + w * 0.4, 0.15 + w * 0.5);
+          -f.x * power * 0.6 + Math.cos(a) * sp, 1.2 + Math.random() * 2.2, -f.z * power * 0.6 + Math.sin(a) * sp,
+          1.1 + Math.random() * 0.9, g, g, g * 1.02);
       } else {
         // cold-gas plume: pale blue-white
         this.spawnParticle(bx, by, bz,
@@ -630,7 +685,7 @@ export class RoadsterRamp {
     this.keys.add(e.code);
     if (e.code === "Escape") this.opts.onExit?.();
     if (e.code === "KeyR") this.reset();
-    if (e.code === "KeyC") this.camMode = (this.camMode + 1) % 4;
+    if (e.code === "KeyC") this.camMode = (this.camMode + 1) % 3;
     if (e.code === "KeyF") this.fanOn = !this.fanOn;
     if (e.code === "KeyM") this.toggleMute();
     if (e.code === "KeyL") this.setLamps(!this.lampsOn);
@@ -684,8 +739,10 @@ export class RoadsterRamp {
       this.vel.addScaledVector(f, 17);
       if (this.mode === "air") this.vel.y += 2.5;
     }
-    this.exhaust(46, 3.2, 9, true);
-    this.flameLight.intensity = 260;
+    // Smoke burst, not fire — tires + cold gas.
+    this.exhaust(52, 3.4, 9, true);
+    this.flameLight.color.set(0xcfd8e6);
+    this.flameLight.intensity = 160;
     this.flameLight.position.copy(this.pos).addScaledVector(f, -3);
     // FOV punch.
     this.camera.fov = 70;
@@ -694,20 +751,47 @@ export class RoadsterRamp {
 
   /* --------------------------------- physics --------------------------------- */
 
-  private readInput() {
+  private readInput(): InputState {
     const k = this.keys;
     const t = this.touch;
-    return {
+    const base = {
       throttle:
         (k.has("KeyW") || k.has("ArrowUp") || t.gas ? 1 : 0) -
         (k.has("KeyS") || k.has("ArrowDown") || t.brake ? 1 : 0),
+      // Screen-correct: pressing right (D) yaws the nose toward screen-right.
       steer:
-        (k.has("KeyA") || k.has("ArrowLeft") || t.left ? 1 : 0) -
-        (k.has("KeyD") || k.has("ArrowRight") || t.right ? 1 : 0),
+        (k.has("KeyD") || k.has("ArrowRight") || t.right ? 1 : 0) -
+        (k.has("KeyA") || k.has("ArrowLeft") || t.left ? 1 : 0),
       lift: k.has("KeyE") || t.lift,
       drop: k.has("Space"),
       boostTap: t.boost,
     };
+    if (this.demoMode) return this.demoInput(base);
+    return base;
+  }
+
+  /** Autopilot: pin the throttle and steer for the ramp mouth. */
+  private demoInput(base: InputState): InputState {
+    if (this.mode === "ground") {
+      const tx = RAMP_X0 - 8;
+      const tz = 0;
+      const want = Math.atan2(tz - this.pos.z, tx - this.pos.x);
+      let d = want - this.yaw;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      base.throttle = 1;
+      base.steer = Math.max(-1, Math.min(1, d * 2.5));
+      // Punch boost once lined up and rolling.
+      const sp = Math.hypot(this.vel.x, this.vel.z);
+      if (Math.abs(d) < 0.12 && sp > 14 && this.pos.x < RAMP_X0 - 30) this.doBoost();
+    } else if (this.mode === "ramp") {
+      base.throttle = 1;
+      base.steer = 0;
+    } else {
+      base.throttle = 0;
+      base.steer = 0;
+    }
+    return base;
   }
 
   private step() {
@@ -765,19 +849,39 @@ export class RoadsterRamp {
     }
   }
 
-  private stepGround(dt: number, input: ReturnType<RoadsterRamp["readInput"]>, speed: number) {
+  private stepGround(dt: number, input: InputState, speed: number) {
     const f = this.forward();
-    // Throttle / brake.
-    const accel = input.throttle >= 0 ? 15 : 22;
-    this.vel.addScaledVector(f, input.throttle * accel * dt);
-    // Drag + rolling resistance.
-    this.vel.multiplyScalar(Math.max(1 - (0.35 + speed * 0.012) * dt, 0));
-    const maxSp = 40;
-    const sp = this.vel.length();
-    if (sp > maxSp) this.vel.multiplyScalar(maxSp / sp);
-    // Steering scales with speed.
-    const steerAuthority = Math.min(sp / 8, 1) * (input.throttle < 0 ? -1 : 1);
-    this.yaw += input.steer * 1.9 * steerAuthority * dt;
+    // Split velocity into forward + lateral so tires can grip sideways.
+    const fwdSpeed = this.vel.dot(f);
+    tmpV2.copy(f).multiplyScalar(fwdSpeed);
+    const latVel = tmpV3.copy(this.vel).sub(tmpV2);
+
+    // Throttle / brake / reverse along the heading.
+    let newFwd = fwdSpeed;
+    if (input.throttle > 0) newFwd += 16 * dt * (1 - Math.max(newFwd, 0) / 46);
+    else if (input.throttle < 0) {
+      if (newFwd > 0.5) newFwd -= 30 * dt; // brake
+      else newFwd = Math.max(newFwd - 10 * dt, -13); // reverse, capped
+    }
+    // Rolling drag + aero (quadratic-ish).
+    newFwd *= Math.max(1 - (0.22 + Math.abs(newFwd) * 0.016) * dt, 0);
+
+    // Lateral tire grip: bleed off sideways slide hard (a touch of drift at speed).
+    const grip = Math.min(9, 4 + speed * 0.12);
+    latVel.multiplyScalar(Math.max(1 - grip * dt, 0));
+
+    this.vel.copy(f).multiplyScalar(newFwd).add(latVel);
+
+    // Steering: needs rolling speed, fades at very high speed, reverses in reverse.
+    const dirSign = newFwd >= 0 ? 1 : -1;
+    const steerAuthority = Math.min(Math.abs(newFwd) / 7, 1) / (1 + Math.abs(newFwd) * 0.028);
+    this.yaw += input.steer * 2.3 * steerAuthority * dirSign * dt;
+    // Smoothed lateral/longitudinal accel drives body roll + pitch.
+    const latA = latVel.length() * Math.sign(input.steer || 1);
+    this.smoothLatA += (latA - this.smoothLatA) * Math.min(6 * dt, 1);
+    const longA = (newFwd - this.prevFwd) / Math.max(dt, 1e-4);
+    this.prevFwd = newFwd;
+    this.smoothLongA += (longA - this.smoothLongA) * Math.min(6 * dt, 1);
 
     this.pos.addScaledVector(this.vel, dt);
     this.pos.y = CAR_CLEAR;
@@ -801,7 +905,7 @@ export class RoadsterRamp {
     }
   }
 
-  private stepRamp(dt: number, input: ReturnType<RoadsterRamp["readInput"]>) {
+  private stepRamp(dt: number, input: InputState) {
     // Drive along the curve tangent t = (cosφ, sinφ).
     const driveForce = input.throttle >= 0 ? 13 : 18;
     this.u += input.throttle * driveForce * dt;
@@ -832,8 +936,8 @@ export class RoadsterRamp {
     }
 
     this.phi += (this.u / RAMP_R) * dt;
-    // Lateral drift on the ramp.
-    this.pos.z += input.steer * 5 * dt * -1; // steer left/right across the ramp
+    // Lateral drift on the ramp (D = screen-right).
+    this.pos.z += input.steer * 5 * dt;
     this.pos.z = Math.max(-RAMP_W / 2 + 1.2, Math.min(RAMP_W / 2 - 1.2, this.pos.z));
 
     if (this.phi >= RAMP_PHI_MAX) {
@@ -855,7 +959,7 @@ export class RoadsterRamp {
     this.pos.set(p.x, p.y, this.pos.z).addScaledVector(n, CAR_CLEAR);
   }
 
-  private stepAir(dt: number, input: ReturnType<RoadsterRamp["readInput"]>) {
+  private stepAir(dt: number, input: InputState) {
     // Cold-gas lift thrusters.
     if (input.lift) {
       this.vel.y += 30 * dt;
@@ -889,6 +993,7 @@ export class RoadsterRamp {
           this.phi = phi;
           const t = tmpV2.set(Math.cos(phi), Math.sin(phi), 0);
           this.u = Math.max(this.vel.dot(t), 2);
+          this.landingDip = Math.min(1, Math.abs(this.vel.y) / 14);
           this.vel.set(0, 0, 0);
           this.syncPosFromRamp();
           this.exhaust(14, 2.5, 2, false); // touchdown puff
@@ -897,6 +1002,7 @@ export class RoadsterRamp {
       }
       this.mode = "ground";
       this.pos.y = CAR_CLEAR;
+      this.landingDip = Math.min(1, Math.abs(this.vel.y) / 14);
       // keep some forward roll
       const sp = Math.hypot(this.vel.x, this.vel.z);
       if (sp > 1) {
@@ -911,7 +1017,7 @@ export class RoadsterRamp {
 
   /* ------------------------------ presentation ------------------------------ */
 
-  private updateCarTransform(dt: number, input: ReturnType<RoadsterRamp["readInput"]>) {
+  private updateCarTransform(dt: number, input: InputState) {
     this.car.position.copy(this.pos);
     if (this.mode === "ramp") {
       const t = tmpV1.set(Math.cos(this.phi), Math.sin(this.phi), 0);
@@ -920,14 +1026,21 @@ export class RoadsterRamp {
       tmpM.makeBasis(t, n, zAxis);
       this.car.quaternion.setFromRotationMatrix(tmpM);
     } else {
-      // Lean into steering + pitch with acceleration; slight hover bob in air.
-      const lean = -input.steer * 0.06;
-      const pitch = this.mode === "air" ? Math.max(-0.35, Math.min(0.35, -this.vel.y * 0.02)) : 0;
-      this.car.rotation.set(pitch, -this.yaw, lean, "YXZ");
+      // Body roll from lateral accel, pitch from longitudinal accel + flight.
+      const roll = Math.max(-0.09, Math.min(0.09, -this.smoothLatA * 0.004));
+      const pitch =
+        this.mode === "air"
+          ? Math.max(-0.35, Math.min(0.35, -this.vel.y * 0.02))
+          : Math.max(-0.05, Math.min(0.05, -this.smoothLongA * 0.002));
+      this.car.rotation.set(pitch, -this.yaw, roll, "YXZ");
       if (this.mode === "air") {
         this.car.position.y += Math.sin(this.elapsed * 7) * 0.06;
       }
+      void input;
     }
+    // Suspension dip on landing (decays fast).
+    this.landingDip *= Math.max(1 - 4.5 * dt, 0);
+    this.car.position.y -= this.landingDip * 0.4;
     // Blob shadow tracks x/z at ground level.
     this.blobShadow.position.set(this.pos.x, 0.03, this.pos.z);
     const h = Math.max(this.pos.y - CAR_CLEAR, 0);
@@ -939,31 +1052,25 @@ export class RoadsterRamp {
 
   private updateCamera(dt: number) {
     const f = this.forward();
-    const up =
-      this.mode === "ramp"
-        ? tmpV1.set(-Math.sin(this.phi), Math.cos(this.phi), 0).clone()
-        : tmpV1.set(0, 1, 0).clone();
+    const up = tmpV1.set(0, 1, 0).clone();
     let desired = tmpV2;
     let look = tmpV3;
     if (this.camMode === 0) {
-      // Chase.
-      desired.copy(this.pos).addScaledVector(f, -11).addScaledVector(up, 4.6);
-      look.copy(this.pos).addScaledVector(f, 7).addScaledVector(up, 1);
+      // Fixed wide cinematic — the reference look: runway sweeping in from
+      // the left, J-ramp towering center-right, truss behind.
+      desired.set(-46, 26, 92);
+      look.set(-12, 13, 0);
     } else if (this.camMode === 1) {
-      // Hood.
-      desired.copy(this.pos).addScaledVector(f, 1.4).addScaledVector(up, 1.7);
-      look.copy(this.pos).addScaledVector(f, 24);
-    } else if (this.camMode === 2) {
-      // Cinematic orbit around the ramp.
-      const a = this.elapsed * 0.14;
-      desired.set(RAMP_X0 + 24 + Math.cos(a) * 62, 26 + Math.sin(a * 0.7) * 8, Math.sin(a) * 62);
-      look.copy(this.pos);
+      // Far chase.
+      desired.copy(this.pos).addScaledVector(f, -16).addScaledVector(up, 7);
+      look.copy(this.pos).addScaledVector(f, 8).addScaledVector(up, 1.5);
     } else {
       // Top.
-      desired.copy(this.pos).addScaledVector(up, 72).addScaledVector(f, 0.5);
+      desired.copy(this.pos).addScaledVector(up, 78).addScaledVector(f, 1);
       look.copy(this.pos);
     }
-    const k = this.camMode === 1 ? 1 : Math.min(5 * dt, 1);
+    // Fixed cam snaps; others ease.
+    const k = this.camMode === 0 ? 1 : Math.min(5 * dt, 1);
     this.camPos.lerp(desired, k);
     this.camera.position.copy(this.camPos);
     this.camera.up.copy(up);

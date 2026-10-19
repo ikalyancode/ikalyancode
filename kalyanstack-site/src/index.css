@@ -56,22 +56,3 @@ section[id] {
   color: transparent;
   -webkit-text-fill-color: transparent;
 }
-
-/* Roadster Run: headings rattle when the rocket car buzzes past them. */
-@keyframes roadster-rattle {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  20% { transform: translate(-2px, 1px) rotate(-0.6deg); }
-  40% { transform: translate(2px, -1px) rotate(0.6deg); }
-  60% { transform: translate(-1.5px, -1px) rotate(-0.4deg); }
-  80% { transform: translate(1.5px, 1px) rotate(0.4deg); }
-}
-
-.roadster-rattle {
-  animation: roadster-rattle 0.32s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .roadster-rattle {
-    animation: none;
-  }
-}

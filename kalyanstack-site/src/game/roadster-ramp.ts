@@ -18,6 +18,8 @@ export interface RoadsterRampOptions {
   onExit?: () => void;
   /** Fired once, after the first frame renders — the scene is visibly up. */
   onFirstFrame?: () => void;
+  /** 'ramp' starts the car just before the ramp at speed (playtesting). */
+  demoStart?: 'ramp';
 }
 
 /** Mutable touch-control state, written by the React overlay. */
@@ -150,6 +152,13 @@ export class RoadsterRamp {
     this.buildParticles();
     this.initAudio();
     this.bindInput();
+
+    if (opts.demoStart === 'ramp') {
+      this.pos.set(RAMP_X0 - 30, CAR_CLEAR, 0);
+      this.vel.set(30, 0, 0);
+      this.yaw = 0;
+      this.demoMode = true;
+    }
 
     // Post-mount resize kick: if layout settled after construction, re-fit.
     requestAnimationFrame(() => {

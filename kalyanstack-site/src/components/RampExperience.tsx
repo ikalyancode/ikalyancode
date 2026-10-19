@@ -6,7 +6,7 @@ interface Props {
   setHud: (h: RampHud) => void;
   onExit: () => void;
   isTouch: boolean;
-  demo?: boolean;
+  demo?: boolean | 'ramp';
 }
 
 /** 3D driving experience, embedded in a 16:9 frame: canvas + HUD + controls. */
@@ -23,6 +23,7 @@ export default function RampExperience({ hud, setHud, onExit, isTouch, demo }: P
         onHud: (h) => setHud(h),
         onExit,
         onFirstFrame: () => setReady(true),
+        demoStart: demo === 'ramp' ? 'ramp' : undefined,
       });
       if (demo) game.demoMode = true;
       gameRef.current = game;

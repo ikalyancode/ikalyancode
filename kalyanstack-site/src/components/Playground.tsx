@@ -11,18 +11,16 @@ const RampExperience = lazy(() => import('./RampExperience'));
  * launch off the lip. ?demo=1 autostarts an autopilot run (for testing).
  */
 export default function Playground() {
-  const [driving, setDriving] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('demo') === '1'
-  );
+  const demoParam =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('demo')
+      : null;
+  const [driving, setDriving] = useState(() => demoParam === '1' || demoParam === 'ramp');
   const [hud, setHud] = useState<RampHud>({ speedKmh: 0, fanOn: true, contactG: 3, zone: 'ground' });
   const [isTouch] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
   );
-  const demo =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('demo') === '1';
+  const demo = demoParam === 'ramp' ? 'ramp' : demoParam === '1';
   const reducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;

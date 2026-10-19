@@ -1,43 +1,38 @@
-# Hi there! 👋 I'm Kalyankumar Reddy 👨‍💻
+# Hi there 👋 I'm Kalyankumar Reddy
 
-Welcome to my GitHub! I'm a passionate **Full-Stack Developer** with over 6 years of experience building scalable, user-centric applications. I thrive on solving complex problems and creating innovative solutions in the tech space.
+**Software Engineer (AI) · Full-Stack · Forward Deployed Engineer** — 6+ years building production software. These days I work on applied AI: coding agents and call/conversational agents on Google Cloud's Vertex AI at Wells Fargo.
 
-### 🛠️ Technologies & Tools
-- **Languages**: Java, Python, JavaScript, TypeScript, Ruby, Rust
-- **Frontend**: React.js, Angular, HTML5, CSS3
-- **Backend**: Spring Boot, Node.js, Flask
-- **Databases**: PostgreSQL, MySQL, SQL Server
-- **DevOps**: Docker, Kubernetes, AWS (EC2, S3, CloudFront)
-- **Version Control**: Git, GitHub
-- **Other Tools**: Jenkins, Postman, JIRA
+## What I do
 
----
+- **Production GenAI** — agent systems and conversational AI on Vertex AI (Wells Fargo)
+- **Full-stack engineering** — React + TypeScript frontends, Python / Java / Go services on GCP
+- **Enterprise delivery** — previously State of Minnesota, 3M, and Verizon
 
-### 🎯 Career Highlights
-- **2024**: Developed a Slack bot that streamlined deployment alerts and reduced downtime by 30%.
-- **2023**: Led the migration of legacy .NET systems to Java microservices, improving scalability and performance.
-- **2022**: Designed and implemented an interactive dashboard for real-time analytics using React.js and PostgreSQL.
+## Stack
 
----
+`Python` `TypeScript` `Java` `Go` `React` `Node.js` `Vertex AI` `GCP` `SQL` `Docker`
 
-### 🌱 What I'm Learning
-- Building scalable microservices with Kafka and RabbitMQ  
-- Advanced containerization using Kubernetes and Docker Compose  
-- Exploring AI with TensorFlow and PyTorch  
+## Featured projects
 
----
+- 🔐 **[passkey-starter](https://github.com/ikalyancode/passkey-starter)** — passwordless auth done right: Next.js + WebAuthn with conditional-mediation autofill, discoverable credentials, and passkey management.
+- 📡 **[streamwatch](https://github.com/ikalyancode/streamwatch)** — stream-health monitor for solo live-event streamers: probes RTMP/HLS targets, tracks bitrate/fps, and alerts on degradation before your audience notices.
+- 🔊 **[ev-engine-sound](https://github.com/ikalyancode/ev-engine-sound)** — TeslaSound-style engine sounds for EVs: a PWA that synthesizes V8 / inline-6 / EV-hum audio with the Web Audio API — zero audio files.
 
-### 💬 Let's Connect!
-- **LinkedIn**: [Connect with me](https://www.linkedin.com/in/knalladimmu)
-- **Email**: [kalyan.psu@gmail.com](mailto:kalyan.psu@gmail.com)
+## Currently
+
+- Exploring **Forward Deployed Engineer** roles — AI systems deployed inside real enterprises
+- Building in public: auth, observability, and weird audio toys
+
+## Let's connect
+
+- **LinkedIn**: [Connect with me](https://www.linkedin.com/in/kalyankumar-reddy)
+- **Email**: kalyan.psu@gmail.com
 
 ---
 
-### ⚡ Fun Fact
-I’m also a [photographer](https://redefined.myportfolio.com/)! You’ll often find me exploring nature with my camera when I’m not coding. 🌲📸
+![Kalyan's GitHub stats](https://github-readme-stats.vercel.app/api?username=ikalyancode&show_icons=true&theme=tokyonight)
+![Top languages](https://github-readme-stats.vercel.app/api/top-langs/?username=ikalyancode&layout=compact&theme=tokyonight)
 
----
+### ⚡ Fun fact
 
-Proudest Moment of my Career. Slackbot Launch
-
-![Screenshot 2024-12-23 103311](https://github.com/user-attachments/assets/901b2e1f-768b-4c8f-a1f1-02b9cf79a310)
+I'm also a photographer — you'll often find me exploring nature with my camera when I'm not coding. 🌲📸

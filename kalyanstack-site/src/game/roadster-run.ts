@@ -1,27 +1,29 @@
-import Matter from 'matter-js';
+/* Roadster Run — free-roam mode.
+   The roadster breaks out of its box and flies over the entire website.
+   It follows your cursor across the whole page, smashes floating words
+   harvested from the site's own headings, and rattles any heading it
+   flies near. Esc (or the launcher) parks it and restores the page. */
 
-/**
- * Roadster Run — a tiny 2D physics game.
- * A flying roadster smashes drifting words. Small words pop in one hit,
- * big words take a beating. Built on Matter.js, rendered on canvas.
- */
+import Matter from "matter-js";
+
+const { Engine, World, Bodies, Body, Events, Composite } = Matter;
 
 export interface RoadsterRunOptions {
   onScore?: (score: number, best: number) => void;
+  onExit?: () => void;
 }
 
-interface LetterMeta {
-  word: string;
-  hp: number;
-  maxHp: number;
-  size: number;
-  color: string;
-  points: number;
-  halfW: number;
-  halfH: number;
-  lastHit: number;
-  flash: number;
-  seed: number;
+interface WordBody extends Matter.Body {
+  plugin: {
+    text: string;
+    fontSize: number;
+    hp: number;
+    maxHp: number;
+    points: number;
+    color: string;
+    hitFlash: number;
+    driftPhase: number;
+  };
 }
 
 interface Particle {
@@ -31,652 +33,649 @@ interface Particle {
   vy: number;
   life: number;
   maxLife: number;
-  color: string;
   size: number;
+  color: string;
 }
 
-interface FloatText {
+interface Floater {
   x: number;
   y: number;
   text: string;
   life: number;
   maxLife: number;
+  color: string;
 }
 
-interface TrailDot {
-  x: number;
-  y: number;
-  angle: number;
-  life: number;
+const BEST_KEY = "roadster-run-best";
+
+const FALLBACK_WORDS = [
+  "Python", "TypeScript", "React", "Vertex AI", "GCP",
+  "Go", "Java", "Docker", "Kubernetes", "GraphQL",
+  "SQL", "Node.js", "Terraform", "FastAPI", "Agile",
+];
+
+/** Words pulled from the site's own headings — the roadster smashes the site's typography. */
+function harvestWords(): string[] {
+  try {
+    const els = document.querySelectorAll("main h1, main h2, main h3");
+    const words: string[] = [];
+    els.forEach((el) => {
+      (el.textContent || "")
+        .split(/\s+/)
+        .map((w) => w.replace(/[^\w+.#'-]/g, "").trim())
+        .filter((w) => w.length >= 2 && w.length <= 14)
+        .forEach((w) => {
+          if (!words.includes(w)) words.push(w);
+        });
+    });
+    if (words.length >= 6) return words.slice(0, 18);
+  } catch {
+    /* fall through */
+  }
+  return [...FALLBACK_WORDS];
 }
-
-const WORDS = [
-  'Python', 'TypeScript', 'React', 'Vertex AI', 'GCP', 'Go',
-  'Java', 'Docker', 'Kubernetes', 'GraphQL', 'SQL', 'Node.js',
-  'Terraform', 'FastAPI', 'Agile', 'API',
-];
-
-// Tier by font size: small = 1 hit, medium = 2, big = 3.
-const TIERS = [
-  { min: 24, max: 34, hp: 1, color: '#5eead4', points: 10 },
-  { min: 46, max: 60, hp: 2, color: '#a5b4fc', points: 25 },
-  { min: 82, max: 100, hp: 3, color: '#fda4af', points: 50 },
-];
-
-const TARGET_LETTERS = 7;
-const BEST_KEY = 'roadster-run-best';
-
-const rand = (min: number, max: number) => min + Math.random() * (max - min);
-const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
 export class RoadsterRun {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private onScore?: (score: number, best: number) => void;
-
   private engine: Matter.Engine;
   private car!: Matter.Body;
-  private walls: Matter.Body[] = [];
-  private letters = new Map<number, LetterMeta>();
-  private particles: Particle[] = [];
-  private floatTexts: FloatText[] = [];
-  private trail: TrailDot[] = [];
-
   private raf = 0;
   private running = false;
-  private W = 0;
-  private H = 0;
-  private dpr = 1;
-
-  private pointer = { x: 0, y: 0, active: false, down: false };
-  private keys = new Set<string>();
-  private boostCooldownUntil = 0;
-  private boostingUntil = 0;
-  private shake = 0;
+  private words: string[];
+  private wordIndex = 0;
+  private particles: Particle[] = [];
+  private floaters: Floater[] = [];
   private score = 0;
   private best = 0;
-  private respawnAt: number[] = [];
-  private measureCtx: CanvasRenderingContext2D;
-  private time = 0;
+  private opts: RoadsterRunOptions;
+  private pointer = { x: -9999, y: -9999 };
+  private keys = new Set<string>();
+  private lastBoost = 0;
+  private tick = 0;
+  private isTouch: boolean;
+  private dpr: number;
+  private rattleEls: Element[] = [];
+  private disposed = false;
 
-  private onCollision = (e: Matter.IEventCollision<Matter.Engine>) => {
-    for (const pair of e.pairs) {
-      const a = pair.bodyA;
-      const b = pair.bodyB;
-      const carBody = a.label === 'car' ? a : b.label === 'car' ? b : null;
-      const letterBody = a.label === 'letter' ? a : b.label === 'letter' ? b : null;
-      if (carBody && letterBody) this.hitLetter(letterBody, carBody);
+  constructor(opts: RoadsterRunOptions = {}) {
+    this.opts = opts;
+    this.isTouch = window.matchMedia("(pointer: coarse)").matches;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.words = harvestWords();
+    for (let i = this.words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.words[i], this.words[j]] = [this.words[j], this.words[i]];
     }
-  };
+    try {
+      this.best = parseInt(localStorage.getItem(BEST_KEY) || "0", 10) || 0;
+    } catch {
+      this.best = 0;
+    }
 
-  private gameInView() {
-    const r = this.canvas.getBoundingClientRect();
-    return r.bottom > 0 && r.top < window.innerHeight;
+    // Full-viewport fixed overlay, created and owned by the game.
+    this.canvas = document.createElement("canvas");
+    this.canvas.id = "roadster-run-canvas";
+    Object.assign(this.canvas.style, {
+      position: "fixed",
+      inset: "0",
+      width: "100vw",
+      height: "100vh",
+      zIndex: "40",
+      pointerEvents: this.isTouch ? "none" : "auto",
+      touchAction: "none",
+      cursor: "none",
+    });
+    document.body.appendChild(this.canvas);
+    const ctx = this.canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D unavailable");
+    this.ctx = ctx;
+    this.resize();
+
+    this.engine = Engine.create({ gravity: { x: 0, y: 0 } });
+    this.engine.positionIterations = 8;
+    this.engine.velocityIterations = 6;
+
+    this.buildWalls();
+    this.spawnCar();
+    for (let i = 0; i < 10; i++) this.spawnWord(true);
+
+    this.bindInput();
+    Events.on(this.engine, "collisionStart", (e) => this.onCollide(e));
+    this.running = true;
+    const loop = () => {
+      if (!this.running || this.disposed) return;
+      this.step();
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
   }
 
-  private onResize = () => this.resize();
-  private onVisibility = () => {
-    this.running = !document.hidden;
+  /* ---------------------------------- setup --------------------------------- */
+
+  private resize() {
+    this.canvas.width = Math.floor(window.innerWidth * this.dpr);
+    this.canvas.height = Math.floor(window.innerHeight * this.dpr);
+  }
+
+  private buildWalls() {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const t = 200;
+    const walls = [
+      Bodies.rectangle(W / 2, -t / 2, W + t * 2, t, { isStatic: true }),
+      Bodies.rectangle(W / 2, H + t / 2, W + t * 2, t, { isStatic: true }),
+      Bodies.rectangle(-t / 2, H / 2, t, H + t * 2, { isStatic: true }),
+      Bodies.rectangle(W + t / 2, H / 2, t, H + t * 2, { isStatic: true }),
+    ];
+    World.add(this.engine.world, walls);
+  }
+
+  private spawnCar() {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    // Small rocket-car roadster, ~64px long.
+    const car = Bodies.rectangle(W / 2, H / 2, 64, 30, {
+      frictionAir: 0.045,
+      restitution: 0.55,
+      density: 0.004,
+      label: "car",
+    });
+    this.car = car;
+    World.add(this.engine.world, car);
+  }
+
+  private nextWord(): string {
+    const w = this.words[this.wordIndex % this.words.length];
+    this.wordIndex++;
+    return w;
+  }
+
+  private spawnWord(anywhere = false) {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const text = this.nextWord();
+    const roll = Math.random();
+    let fontSize: number, hp: number, points: number, color: string;
+    if (roll < 0.5) {
+      fontSize = 24 + Math.random() * 10; hp = 1; points = 10; color = "#5eead4";
+    } else if (roll < 0.82) {
+      fontSize = 46 + Math.random() * 14; hp = 2; points = 25; color = "#a5b4fc";
+    } else {
+      fontSize = 80 + Math.random() * 18; hp = 3; points = 50; color = "#fda4af";
+    }
+    const w = Math.max(60, text.length * fontSize * 0.62);
+    const h = fontSize * 1.5;
+    // Spawn from a viewport edge so words drift in over the page.
+    let x: number, y: number;
+    if (anywhere) {
+      x = 60 + Math.random() * (W - 120);
+      y = 90 + Math.random() * (H - 180);
+    } else {
+      const side = Math.floor(Math.random() * 4);
+      if (side === 0) { x = -w; y = Math.random() * H; }
+      else if (side === 1) { x = W + w; y = Math.random() * H; }
+      else if (side === 2) { x = Math.random() * W; y = -h; }
+      else { x = Math.random() * W; y = H + h; }
+    }
+    const body = Bodies.rectangle(x, y, w, h, {
+      frictionAir: 0.012,
+      restitution: 0.7,
+      density: 0.0006,
+      label: "word",
+    }) as WordBody;
+    body.plugin = {
+      text, fontSize, hp, maxHp: hp, points, color,
+      hitFlash: 0, driftPhase: Math.random() * Math.PI * 2,
+    };
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 0.6 + Math.random() * 1.4;
+    Body.setVelocity(body, { x: Math.cos(ang) * sp, y: Math.sin(ang) * sp });
+    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.02);
+    World.add(this.engine.world, body);
+  }
+
+  /* ---------------------------------- input --------------------------------- */
+
+  private onPointerMove = (e: PointerEvent) => {
+    this.pointer.x = e.clientX;
+    this.pointer.y = e.clientY;
+  };
+
+  private onPointerDown = (e: PointerEvent) => {
+    this.pointer.x = e.clientX;
+    this.pointer.y = e.clientY;
+    // Desktop: the canvas captures clicks, so a click is a boost.
+    if (!this.isTouch && e.target === this.canvas) this.boost();
+  };
+
+  private onTouchMove = (e: TouchEvent) => {
+    const t = e.touches[0];
+    if (t) {
+      this.pointer.x = t.clientX;
+      this.pointer.y = t.clientY;
+    }
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (!this.gameInView()) return;
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-      e.preventDefault();
+    if (e.key === "Escape") {
+      this.opts.onExit?.();
+      return;
     }
     this.keys.add(e.key.toLowerCase());
-    if (e.key === ' ') this.tryBoost();
+    if (e.key === " ") {
+      e.preventDefault();
+      this.boost();
+    }
   };
+
   private onKeyUp = (e: KeyboardEvent) => {
     this.keys.delete(e.key.toLowerCase());
   };
 
-  private onPointerMove = (e: PointerEvent) => {
-    const r = this.canvas.getBoundingClientRect();
-    this.pointer.x = e.clientX - r.left;
-    this.pointer.y = e.clientY - r.top;
-    this.pointer.active = true;
-  };
-  private onPointerDown = (e: PointerEvent) => {
-    this.onPointerMove(e);
-    this.pointer.down = true;
-    this.tryBoost();
-  };
-  private onPointerUp = () => {
-    this.pointer.down = false;
-  };
-
-  constructor(canvas: HTMLCanvasElement, opts: RoadsterRunOptions = {}) {
-    this.canvas = canvas;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('no 2d context');
-    this.ctx = ctx;
-    this.onScore = opts.onScore;
-    this.best = Number(localStorage.getItem(BEST_KEY) ?? 0) || 0;
-
-    const mc = document.createElement('canvas').getContext('2d');
-    if (!mc) throw new Error('no measure context');
-    this.measureCtx = mc;
-
-    this.engine = Matter.Engine.create();
-    this.engine.gravity.x = 0;
-    this.engine.gravity.y = 0;
-
+  private onResize = () => {
     this.resize();
-    this.buildCar();
+    const statics = Composite.allBodies(this.engine.world).filter((b) => b.isStatic);
+    World.remove(this.engine.world, statics);
     this.buildWalls();
-    for (let i = 0; i < TARGET_LETTERS; i++) this.spawnLetter(true);
-
-    Matter.Events.on(this.engine, 'collisionStart', this.onCollision);
-    window.addEventListener('resize', this.onResize);
-    document.addEventListener('visibilitychange', this.onVisibility);
-    window.addEventListener('keydown', this.onKeyDown);
-    window.addEventListener('keyup', this.onKeyUp);
-    canvas.addEventListener('pointermove', this.onPointerMove);
-    canvas.addEventListener('pointerdown', this.onPointerDown);
-    window.addEventListener('pointerup', this.onPointerUp);
-    canvas.addEventListener('pointerleave', () => {
-      this.pointer.active = false;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    Body.setPosition(this.car, {
+      x: Math.min(Math.max(this.car.position.x, 40), W - 40),
+      y: Math.min(Math.max(this.car.position.y, 40), H - 40),
     });
+  };
 
-    // Start the car in the middle; pointer starts there too.
-    this.pointer.x = this.W / 2;
-    this.pointer.y = this.H / 2;
-
-    this.running = !document.hidden;
-    this.loop();
+  private bindInput() {
+    window.addEventListener("pointermove", this.onPointerMove, { passive: true });
+    window.addEventListener("pointerdown", this.onPointerDown, { passive: true });
+    window.addEventListener("touchmove", this.onTouchMove, { passive: true });
+    window.addEventListener("keydown", this.onKeyDown);
+    window.addEventListener("keyup", this.onKeyUp);
+    window.addEventListener("resize", this.onResize);
   }
 
-  destroy() {
-    this.running = false;
-    cancelAnimationFrame(this.raf);
-    Matter.Events.off(this.engine, 'collisionStart', this.onCollision);
-    window.removeEventListener('resize', this.onResize);
-    document.removeEventListener('visibilitychange', this.onVisibility);
-    window.removeEventListener('keydown', this.onKeyDown);
-    window.removeEventListener('keyup', this.onKeyUp);
-    this.canvas.removeEventListener('pointermove', this.onPointerMove);
-    this.canvas.removeEventListener('pointerdown', this.onPointerDown);
-    window.removeEventListener('pointerup', this.onPointerUp);
-    Matter.Engine.clear(this.engine);
+  private unbindInput() {
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("touchmove", this.onTouchMove);
+    window.removeEventListener("keydown", this.onKeyDown);
+    window.removeEventListener("keyup", this.onKeyUp);
+    window.removeEventListener("resize", this.onResize);
   }
 
-  // ---------- setup ----------
-
-  private resize() {
-    const rect = this.canvas.getBoundingClientRect();
-    this.W = Math.max(280, rect.width);
-    this.H = Math.max(300, rect.height);
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.canvas.width = Math.round(this.W * this.dpr);
-    this.canvas.height = Math.round(this.H * this.dpr);
-    this.buildWalls();
-  }
-
-  private buildCar() {
-    this.car = Matter.Bodies.rectangle(this.W / 2, this.H / 2, 96, 44, {
-      label: 'car',
-      frictionAir: 0.07,
-      restitution: 0.35,
-      density: 0.004,
-      chamfer: { radius: 18 },
-    });
-    Matter.World.add(this.engine.world, this.car);
-  }
-
-  private buildWalls() {
-    for (const w of this.walls) Matter.World.remove(this.engine.world, w);
-    this.walls = [];
-    const t = 140;
-    const opts: Matter.IChamferableBodyDefinition = { isStatic: true, restitution: 1, label: 'wall' };
-    this.walls = [
-      Matter.Bodies.rectangle(this.W / 2, -t / 2, this.W + t * 2, t, opts),
-      Matter.Bodies.rectangle(this.W / 2, this.H + t / 2, this.W + t * 2, t, opts),
-      Matter.Bodies.rectangle(-t / 2, this.H / 2, t, this.H + t * 2, opts),
-      Matter.Bodies.rectangle(this.W + t / 2, this.H / 2, t, this.H + t * 2, opts),
-    ];
-    Matter.World.add(this.engine.world, this.walls);
-  }
-
-  private fontFor(size: number) {
-    return `800 ${size}px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", sans-serif`;
-  }
-
-  private spawnLetter(anywhere = false) {
-    const word = pick(WORDS);
-    const tier = pick(TIERS);
-    let size = rand(tier.min, tier.max);
-    this.measureCtx.font = this.fontFor(size);
-    let tw = this.measureCtx.measureText(word).width;
-    const maxW = Math.min(520, this.W * 0.66);
-    if (tw > maxW) {
-      size = Math.max(18, size * (maxW / tw));
-      this.measureCtx.font = this.fontFor(size);
-      tw = this.measureCtx.measureText(word).width;
-    }
-    const padX = 26;
-    const padY = 18;
-    const w = tw + padX * 2;
-    const h = size + padY * 2;
-
-    let x: number;
-    let y: number;
-    let vx: number;
-    let vy: number;
-    if (anywhere) {
-      x = rand(w, this.W - w);
-      y = rand(h, this.H - h);
-      const a = rand(0, Math.PI * 2);
-      const sp = rand(1.2, 2.8);
-      vx = Math.cos(a) * sp;
-      vy = Math.sin(a) * sp;
-    } else {
-      const edge = Math.floor(rand(0, 4));
-      const sp = rand(1.6, 3.2);
-      const inward = rand(-0.6, 0.6);
-      if (edge === 0) { x = rand(w, this.W - w); y = -h; vx = inward * sp; vy = sp; }
-      else if (edge === 1) { x = rand(w, this.W - w); y = this.H + h; vx = inward * sp; vy = -sp; }
-      else if (edge === 2) { x = -w; y = rand(h, this.H - h); vx = sp; vy = inward * sp; }
-      else { x = this.W + w; y = rand(h, this.H - h); vx = -sp; vy = inward * sp; }
-    }
-
-    const body = Matter.Bodies.rectangle(x, y, w, h, {
-      label: 'letter',
-      frictionAir: 0.008,
-      restitution: 0.92,
-      density: 0.0006,
-      chamfer: { radius: 16 },
-    });
-    Matter.Body.setVelocity(body, { x: vx, y: vy });
-    Matter.Body.setAngularVelocity(body, rand(-0.02, 0.02));
-    this.letters.set(body.id, {
-      word, hp: tier.hp, maxHp: tier.hp, size,
-      color: tier.color, points: tier.points,
-      halfW: w / 2, halfH: h / 2,
-      lastHit: 0, flash: 0, seed: Math.random() * 100,
-    });
-    Matter.World.add(this.engine.world, body);
-  }
-
-  // ---------- gameplay ----------
-
-  private tryBoost() {
+  /** Rocket boost toward the pointer. Public so the touch BOOST button can call it. */
+  boost() {
     const now = performance.now();
-    if (now < this.boostCooldownUntil) return;
-    this.boostCooldownUntil = now + 950;
-    this.boostingUntil = now + 200;
-    const a = this.car.angle;
-    const boost = { x: Math.cos(a) * 13, y: Math.sin(a) * 13 };
-    Matter.Body.setVelocity(this.car, {
-      x: this.car.velocity.x + boost.x,
-      y: this.car.velocity.y + boost.y,
+    if (now - this.lastBoost < 950) return;
+    this.lastBoost = now;
+    const dx = this.pointer.x - this.car.position.x;
+    const dy = this.pointer.y - this.car.position.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const power = 0.055 * this.car.mass;
+    Body.applyForce(this.car, this.car.position, {
+      x: (dx / len) * power,
+      y: (dy / len) * power,
     });
-    this.shake = Math.max(this.shake, 3);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 22; i++) {
+      const a = Math.atan2(-dy, -dx) + (Math.random() - 0.5) * 0.9;
+      const sp = 2 + Math.random() * 5;
       this.particles.push({
-        x: this.car.position.x - Math.cos(a) * 52,
-        y: this.car.position.y - Math.sin(a) * 52,
-        vx: rand(-3, 3) - Math.cos(a) * 5,
-        vy: rand(-3, 3) - Math.sin(a) * 5,
-        life: 22, maxLife: 22,
-        color: pick(['#ffd166', '#ff9f1c', '#ffffff']),
-        size: rand(2, 5),
+        x: this.car.position.x - (dx / len) * 34,
+        y: this.car.position.y - (dy / len) * 34,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        life: 0,
+        maxLife: 26 + Math.random() * 18,
+        size: 2 + Math.random() * 3.5,
+        color: Math.random() < 0.5 ? "#fdba74" : "#f0abfc",
       });
     }
   }
 
-  private hitLetter(letterBody: Matter.Body, carBody: Matter.Body) {
-    const meta = this.letters.get(letterBody.id);
-    if (!meta) return;
-    const now = performance.now();
-    if (now - meta.lastHit < 160) return;
-    meta.lastHit = now;
-    meta.hp -= 1;
-    meta.flash = 1;
+  /* --------------------------------- physics -------------------------------- */
 
-    // Knockback away from the car, scaled by car speed.
-    const dx = letterBody.position.x - carBody.position.x;
-    const dy = letterBody.position.y - carBody.position.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const carSpeed = Math.hypot(carBody.velocity.x, carBody.velocity.y);
-    const push = 5 + carSpeed * 0.55;
-    Matter.Body.setVelocity(letterBody, {
-      x: (dx / d) * push + rand(-1, 1),
-      y: (dy / d) * push + rand(-1, 1),
-    });
-    Matter.Body.setAngularVelocity(letterBody, letterBody.angularVelocity + rand(-0.08, 0.08));
-    // The car loses a little steam on impact.
-    Matter.Body.setVelocity(carBody, {
-      x: carBody.velocity.x * 0.9,
-      y: carBody.velocity.y * 0.9,
-    });
-
-    for (let i = 0; i < 8; i++) {
-      this.particles.push({
-        x: letterBody.position.x + rand(-meta.halfW, meta.halfW) * 0.6,
-        y: letterBody.position.y + rand(-meta.halfH, meta.halfH) * 0.6,
-        vx: rand(-4, 4), vy: rand(-4, 4),
-        life: 20, maxLife: 20, color: meta.color, size: rand(2, 4),
+  private onCollide(e: Matter.IEventCollision<Matter.Engine>) {
+    for (const pair of e.pairs) {
+      const word = [pair.bodyA, pair.bodyB].find(
+        (b) => b.label === "word"
+      ) as WordBody | undefined;
+      const car = [pair.bodyA, pair.bodyB].find((b) => b.label === "car");
+      if (!word || !car || !word.plugin) continue;
+      const p = word.plugin;
+      const impact =
+        Math.hypot(car.velocity.x - word.velocity.x, car.velocity.y - word.velocity.y);
+      if (impact < 1.6) continue; // gentle touches don't count
+      p.hp -= 1;
+      p.hitFlash = 8;
+      Body.setVelocity(word, {
+        x: word.velocity.x + car.velocity.x * 0.35,
+        y: word.velocity.y + car.velocity.y * 0.35,
       });
-    }
-
-    if (meta.hp <= 0) {
-      this.destroyLetter(letterBody, meta);
+      if (p.hp <= 0) {
+        this.smashWord(word);
+      } else {
+        this.burst(word.position.x, word.position.y, p.color, 10);
+      }
     }
   }
 
-  private destroyLetter(body: Matter.Body, meta: LetterMeta) {
-    Matter.World.remove(this.engine.world, body);
-    this.letters.delete(body.id);
-    this.score += meta.points;
+  private burst(x: number, y: number, color: string, n: number) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1 + Math.random() * 4.5;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        life: 0,
+        maxLife: 24 + Math.random() * 26,
+        size: 1.5 + Math.random() * 3,
+        color,
+      });
+    }
+  }
+
+  private smashWord(word: WordBody) {
+    const p = word.plugin!;
+    this.burst(word.position.x, word.position.y, p.color, 34);
+    this.burst(word.position.x, word.position.y, "#ffffff", 12);
+    this.floaters.push({
+      x: word.position.x,
+      y: word.position.y - 10,
+      text: `+${p.points}`,
+      life: 0,
+      maxLife: 55,
+      color: p.color,
+    });
+    this.score += p.points;
     if (this.score > this.best) {
       this.best = this.score;
-      localStorage.setItem(BEST_KEY, String(this.best));
+      try {
+        localStorage.setItem(BEST_KEY, String(this.best));
+      } catch {
+        /* ignore */
+      }
     }
-    this.onScore?.(this.score, this.best);
-
-    for (let i = 0; i < 30; i++) {
-      const a = rand(0, Math.PI * 2);
-      const sp = rand(1.5, 7);
-      this.particles.push({
-        x: body.position.x, y: body.position.y,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: rand(24, 44), maxLife: 44,
-        color: Math.random() < 0.3 ? '#ffffff' : meta.color,
-        size: rand(2, 6),
-      });
-    }
-    this.floatTexts.push({
-      x: body.position.x, y: body.position.y - 10,
-      text: `+${meta.points}`, life: 46, maxLife: 46,
-    });
-    if (meta.maxHp >= 3) this.shake = Math.max(this.shake, 7);
-    this.respawnAt.push(performance.now() + rand(500, 1200));
+    World.remove(this.engine.world, word);
+    this.opts.onScore?.(this.score, this.best);
+    window.setTimeout(() => {
+      if (!this.disposed) this.spawnWord(false);
+    }, 900 + Math.random() * 1200);
   }
 
-  private steerCar() {
-    const pos = this.car.position;
-    let tx: number | null = null;
-    let ty: number | null = null;
-
-    const k = this.keys;
-    const kx = (k.has('arrowright') || k.has('d') ? 1 : 0) - (k.has('arrowleft') || k.has('a') ? 1 : 0);
-    const ky = (k.has('arrowdown') || k.has('s') ? 1 : 0) - (k.has('arrowup') || k.has('w') ? 1 : 0);
-    if (kx !== 0 || ky !== 0) {
-      tx = pos.x + kx * 120;
-      ty = pos.y + ky * 120;
-    } else if (this.pointer.active) {
-      tx = this.pointer.x;
-      ty = this.pointer.y;
+  /** Headings near the car rattle — the site itself reacts to the roadster. */
+  private rattleNearby() {
+    try {
+      const els = document.querySelectorAll("main h1, main h2, main h3");
+      const cx = this.car.position.x;
+      const cy = this.car.position.y;
+      const next = new Set<Element>();
+      els.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const ex = r.left + r.width / 2;
+        const ey = r.top + r.height / 2;
+        if (Math.hypot(ex - cx, ey - cy) < 170) {
+          next.add(el);
+          if (!el.classList.contains("roadster-rattle")) {
+            el.classList.add("roadster-rattle");
+          }
+        }
+      });
+      this.rattleEls.forEach((el) => {
+        if (!next.has(el)) el.classList.remove("roadster-rattle");
+      });
+      this.rattleEls = [...next];
+    } catch {
+      /* ignore */
     }
-    if (tx === null || ty === null) return;
+  }
 
-    const dx = tx - pos.x;
-    const dy = ty - pos.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 10) return;
-    const boosting = performance.now() < this.boostingUntil;
-    const maxSpeed = boosting ? 13 : 8.5;
-    const sp = Math.min(maxSpeed, dist * 0.14);
-    const tvx = (dx / dist) * sp;
-    const tvy = (dy / dist) * sp;
+  private step() {
+    this.tick++;
+
+    // Steer: seek the pointer; WASD/arrows add thrust.
+    const steer = { x: 0, y: 0 };
+    if (this.pointer.x > -999) {
+      steer.x += (this.pointer.x - this.car.position.x) * 0.0011;
+      steer.y += (this.pointer.y - this.car.position.y) * 0.0011;
+    }
+    if (this.keys.has("arrowup") || this.keys.has("w")) steer.y -= 0.0035;
+    if (this.keys.has("arrowdown") || this.keys.has("s")) steer.y += 0.0035;
+    if (this.keys.has("arrowleft") || this.keys.has("a")) steer.x -= 0.0035;
+    if (this.keys.has("arrowright") || this.keys.has("d")) steer.x += 0.0035;
+    const m = this.car.mass;
+    Body.applyForce(this.car, this.car.position, { x: steer.x * m, y: steer.y * m });
+
     const v = this.car.velocity;
-    Matter.Body.setVelocity(this.car, {
-      x: v.x + (tvx - v.x) * 0.22,
-      y: v.y + (tvy - v.y) * 0.22,
-    });
+    const sp = Math.hypot(v.x, v.y);
+    const max = 14;
+    if (sp > max) Body.setVelocity(this.car, { x: (v.x / sp) * max, y: (v.y / sp) * max });
 
-    const speed = Math.hypot(this.car.velocity.x, this.car.velocity.y);
-    if (speed > 1.2) {
-      const target = Math.atan2(this.car.velocity.y, this.car.velocity.x);
+    if (sp > 0.6) {
+      const target = Math.atan2(v.y, v.x);
       let d = target - this.car.angle;
       while (d > Math.PI) d -= Math.PI * 2;
       while (d < -Math.PI) d += Math.PI * 2;
-      Matter.Body.setAngle(this.car, this.car.angle + d * 0.2);
+      Body.setAngle(this.car, this.car.angle + d * 0.22);
     }
 
-    if (speed > 4.5) {
-      this.trail.push({ x: pos.x, y: pos.y, angle: this.car.angle, life: 16 });
-      if (this.trail.length > 40) this.trail.shift();
+    for (const b of Composite.allBodies(this.engine.world)) {
+      const wb = b as WordBody;
+      if (wb.label === "word" && wb.plugin) {
+        const ph = wb.plugin.driftPhase + this.tick * 0.012;
+        Body.applyForce(wb, wb.position, {
+          x: Math.cos(ph) * 0.000012 * wb.mass,
+          y: Math.sin(ph * 1.3) * 0.000012 * wb.mass,
+        });
+        if (wb.plugin.hitFlash > 0) wb.plugin.hitFlash--;
+      }
     }
+
+    if (this.tick % 12 === 0) this.rattleNearby();
+
+    Engine.update(this.engine, 1000 / 60);
+    this.render();
   }
 
-  // ---------- loop ----------
+  /* --------------------------------- rendering ------------------------------- */
 
-  private loop = () => {
-    this.raf = requestAnimationFrame(this.loop);
-    if (!this.running) return;
-    this.time += 1;
-
-    const now = performance.now();
-    while (this.respawnAt.length && this.respawnAt[0] <= now) {
-      this.respawnAt.shift();
-      if (this.letters.size < TARGET_LETTERS + 3) this.spawnLetter(false);
-    }
-
-    this.steerCar();
-    Matter.Engine.update(this.engine, 1000 / 60);
-    this.updateFx();
-    this.draw();
-  };
-
-  private updateFx() {
-    for (const p of this.particles) {
-      p.x += p.vx; p.y += p.vy;
-      p.vx *= 0.96; p.vy *= 0.96;
-      p.life -= 1;
-    }
-    this.particles = this.particles.filter((p) => p.life > 0);
-    for (const t of this.floatTexts) {
-      t.y -= 1.1;
-      t.life -= 1;
-    }
-    this.floatTexts = this.floatTexts.filter((t) => t.life > 0);
-    for (const t of this.trail) t.life -= 1;
-    this.trail = this.trail.filter((t) => t.life > 0);
-    for (const meta of this.letters.values()) meta.flash *= 0.88;
-    this.shake *= 0.88;
-    if (this.shake < 0.2) this.shake = 0;
-  }
-
-  // ---------- drawing ----------
-
-  private rr(x: number, y: number, w: number, h: number, r: number) {
-    const c = this.ctx;
-    c.beginPath();
-    c.moveTo(x + r, y);
-    c.arcTo(x + w, y, x + w, y + h, r);
-    c.arcTo(x + w, y + h, x, y + h, r);
-    c.arcTo(x, y + h, x, y, r);
-    c.arcTo(x, y, x + w, y, r);
-    c.closePath();
-  }
-
-  private draw() {
-    const { ctx, W, H } = this;
+  private render() {
+    const { ctx } = this;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
 
-    // Arena background.
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#0b0b12');
-    bg.addColorStop(1, '#050508');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-
-    // Subtle grid.
-    ctx.strokeStyle = 'rgba(255,255,255,0.045)';
-    ctx.lineWidth = 1;
-    const gs = 44;
-    ctx.beginPath();
-    for (let x = gs / 2; x < W; x += gs) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
-    for (let y = gs / 2; y < H; y += gs) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
-    ctx.stroke();
-
-    if (this.shake > 0) {
-      ctx.translate(rand(-this.shake, this.shake) * 0.5, rand(-this.shake, this.shake) * 0.5);
-    }
-
-    // Trail.
-    for (const t of this.trail) {
-      const a = (t.life / 16) * 0.28;
+    for (const b of Composite.allBodies(this.engine.world)) {
+      const wb = b as WordBody;
+      if (wb.label !== "word" || !wb.plugin) continue;
+      const p = wb.plugin;
       ctx.save();
-      ctx.translate(t.x, t.y);
-      ctx.rotate(t.angle);
-      ctx.fillStyle = `rgba(225, 30, 40, ${a})`;
-      this.rr(-46, -16, 92, 32, 14);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // Letters.
-    for (const [id, meta] of this.letters) {
-      const body = Matter.Composite.get(this.engine.world, id, 'body') as Matter.Body | null;
-      if (!body) continue;
-      const { x, y } = body.position;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(body.angle);
-
-      // Chip.
-      ctx.fillStyle = 'rgba(255,255,255,0.055)';
-      ctx.strokeStyle = meta.color + '55';
+      ctx.translate(b.position.x, b.position.y);
+      ctx.rotate(b.angle);
+      ctx.font = `700 ${p.fontSize}px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const tw = ctx.measureText(p.text).width;
+      const pw = tw + 28;
+      const ph = p.fontSize * 1.35;
+      // Soft dark plate so the word reads over page content.
+      ctx.fillStyle = "rgba(10, 12, 20, 0.55)";
+      ctx.strokeStyle = p.color + "55";
       ctx.lineWidth = 1.5;
-      this.rr(-meta.halfW, -meta.halfH, meta.halfW * 2, meta.halfH * 2, 16);
+      ctx.beginPath();
+      (ctx as unknown as { roundRect(x: number, y: number, w: number, h: number, r: number): void })
+        .roundRect(-pw / 2, -ph / 2, pw, ph, 14);
       ctx.fill();
       ctx.stroke();
-
-      // Word.
-      ctx.font = this.fontFor(meta.size);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = meta.color;
-      ctx.fillText(meta.word, 0, 2);
-
-      // Damage: flash + cracks.
-      if (meta.flash > 0.02) {
-        ctx.fillStyle = `rgba(255,255,255,${(meta.flash * 0.65).toFixed(3)})`;
-        this.rr(-meta.halfW, -meta.halfH, meta.halfW * 2, meta.halfH * 2, 16);
-        ctx.fill();
-      }
-      const cracks = (meta.maxHp - meta.hp) * 2;
-      if (cracks > 0) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-        ctx.lineWidth = 1.5;
-        for (let i = 0; i < cracks; i++) {
-          const a = meta.seed + i * 2.39;
+      if (p.maxHp > 1) {
+        for (let i = 0; i < p.maxHp; i++) {
           ctx.beginPath();
-          ctx.moveTo(Math.cos(a) * 6, Math.sin(a) * 6);
-          ctx.lineTo(Math.cos(a) * meta.halfW * 0.9, Math.sin(a) * meta.halfH * 0.9);
+          ctx.arc(-pw / 2 + 16 + i * 14, -ph / 2 + 12, 4, 0, Math.PI * 2);
+          ctx.fillStyle = i < p.hp ? p.color : "rgba(255,255,255,0.18)";
+          ctx.fill();
+        }
+      }
+      const missing = p.maxHp - p.hp;
+      if (missing > 0) {
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.lineWidth = 1.6;
+        for (let i = 0; i < missing; i++) {
+          const ox = -tw / 2 + ((i + 0.7) / (missing + 0.4)) * tw;
+          ctx.beginPath();
+          ctx.moveTo(ox, -p.fontSize * 0.42);
+          ctx.lineTo(ox + 7, -p.fontSize * 0.1);
+          ctx.lineTo(ox - 5, p.fontSize * 0.18);
+          ctx.lineTo(ox + 6, p.fontSize * 0.42);
           ctx.stroke();
         }
       }
-
-      // HP pips.
-      const pipR = 3;
-      const gap = 9;
-      const totalW = meta.maxHp * gap - (gap - pipR * 2);
-      for (let i = 0; i < meta.maxHp; i++) {
-        ctx.beginPath();
-        ctx.arc(-totalW / 2 + pipR + i * gap, meta.halfH - 12, pipR, 0, Math.PI * 2);
-        ctx.fillStyle = i < meta.hp ? meta.color : 'rgba(255,255,255,0.18)';
-        ctx.fill();
-      }
+      ctx.fillStyle = p.hitFlash > 0 ? "#ffffff" : p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = p.hitFlash > 0 ? 22 : 10;
+      ctx.fillText(p.text, 0, 2);
       ctx.restore();
     }
 
-    this.drawCar();
-
-    // Particles.
-    for (const p of this.particles) {
-      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-      ctx.fillStyle = p.color;
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const pt = this.particles[i];
+      pt.life++;
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+      pt.vx *= 0.97;
+      pt.vy *= 0.97;
+      const t = 1 - pt.life / pt.maxLife;
+      if (t <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      ctx.globalAlpha = t;
+      ctx.fillStyle = pt.color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, pt.size * t + 0.4, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
 
-    // Floating score text.
-    ctx.textAlign = 'center';
-    for (const t of this.floatTexts) {
-      ctx.globalAlpha = Math.max(0, t.life / t.maxLife);
-      ctx.font = '700 20px -apple-system, Inter, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(t.text, t.x, t.y);
+    ctx.textAlign = "center";
+    for (let i = this.floaters.length - 1; i >= 0; i--) {
+      const f = this.floaters[i];
+      f.life++;
+      const t = 1 - f.life / f.maxLife;
+      if (t <= 0) {
+        this.floaters.splice(i, 1);
+        continue;
+      }
+      ctx.globalAlpha = t;
+      ctx.font = "700 20px -apple-system, sans-serif";
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, f.x, f.y - f.life * 0.7);
     }
     ctx.globalAlpha = 1;
+
+    this.drawCar();
   }
 
   private drawCar() {
     const { ctx } = this;
-    const { x, y } = this.car.position;
-    const bob = Math.sin(this.time * 0.08) * 2.5; // hover bob = flying feel
-
+    const p = this.car.position;
+    const a = this.car.angle;
+    const bob = Math.sin(this.tick * 0.09) * 3;
     ctx.save();
-    ctx.translate(x, y + bob);
-    ctx.rotate(this.car.angle);
+    ctx.translate(p.x, p.y + bob);
+    ctx.rotate(a);
 
-    // Shadow (offset sells the "flying" look).
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    // Shadow below for a flying feel.
+    ctx.save();
+    ctx.rotate(-a);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(4, 12, 52, 22, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const L = 96;
-    const Wd = 44;
-
-    // Body.
-    const grad = ctx.createLinearGradient(0, -Wd / 2, 0, Wd / 2);
-    grad.addColorStop(0, '#ff5a52');
-    grad.addColorStop(0.5, '#e11d28');
-    grad.addColorStop(1, '#8f1018');
-    ctx.fillStyle = grad;
-    this.rr(-L / 2, -Wd / 2, L, Wd, 17);
-    ctx.fill();
-
-    // Nose taper highlight.
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
-    this.rr(L / 2 - 26, -Wd / 2 + 7, 20, Wd - 14, 9);
-    ctx.fill();
-
-    // Cabin.
-    ctx.fillStyle = 'rgba(12,12,16,0.92)';
-    this.rr(-14, -Wd / 2 + 8, 34, Wd - 16, 10);
-    ctx.fill();
-    // Windshield glint.
-    ctx.fillStyle = 'rgba(160,200,255,0.35)';
-    this.rr(8, -Wd / 2 + 12, 8, Wd - 24, 4);
-    ctx.fill();
-
-    // Racing stripe.
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
-    ctx.fillRect(-L / 2 + 6, -3, L - 12, 6);
-
-    // Headlights (front = +x).
-    ctx.save();
-    ctx.shadowColor = '#ffe9a8';
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = '#fff6d8';
-    ctx.beginPath(); ctx.arc(L / 2 - 4, -13, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(L / 2 - 4, 13, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
-    // Taillight bar.
-    ctx.save();
-    ctx.shadowColor = '#ff2d2d';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#ff3b30';
-    this.rr(-L / 2 + 2, -14, 7, 28, 3.5);
+    ctx.ellipse(0, 44, 34, 8, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+    ctx.globalAlpha = 1;
 
-    // Wheels (top-down slivers).
-    ctx.fillStyle = '#0c0c0e';
-    for (const [wx, wy] of [[-30, -Wd / 2 - 3], [30, -Wd / 2 - 3], [-30, Wd / 2 - 3], [30, Wd / 2 - 3]] as const) {
-      this.rr(wx - 9, wy, 18, 7, 3);
+    const L = 64;
+    const Wid = 30;
+
+    const boosting = performance.now() - this.lastBoost < 350;
+    if (boosting) {
+      const flick = 26 + Math.random() * 16;
+      const grad = ctx.createLinearGradient(-L / 2, 0, -L / 2 - flick, 0);
+      grad.addColorStop(0, "rgba(255, 240, 200, 0.95)");
+      grad.addColorStop(0.4, "rgba(251, 146, 60, 0.8)");
+      grad.addColorStop(1, "rgba(251, 146, 60, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(-L / 2 + 4, -7);
+      ctx.lineTo(-L / 2 - flick, 0);
+      ctx.lineTo(-L / 2 + 4, 7);
+      ctx.closePath();
       ctx.fill();
     }
 
+    // Glossy red roadster body.
+    const bodyGrad = ctx.createLinearGradient(0, -Wid / 2, 0, Wid / 2);
+    bodyGrad.addColorStop(0, "#f87171");
+    bodyGrad.addColorStop(0.5, "#dc2626");
+    bodyGrad.addColorStop(1, "#991b1b");
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.moveTo(L / 2, 0);
+    ctx.quadraticCurveTo(L / 4, -Wid / 2 - 2, -L / 6, -Wid / 2);
+    ctx.lineTo(-L / 2 + 6, -Wid / 2 + 4);
+    ctx.lineTo(-L / 2 + 6, Wid / 2 - 4);
+    ctx.lineTo(-L / 6, Wid / 2);
+    ctx.quadraticCurveTo(L / 4, Wid / 2 + 2, L / 2, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Glass canopy.
+    ctx.fillStyle = "rgba(186, 230, 253, 0.9)";
+    ctx.beginPath();
+    ctx.ellipse(6, 0, 13, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rocket fins.
+    ctx.fillStyle = "#7f1d1d";
+    ctx.beginPath();
+    ctx.moveTo(-L / 2 + 10, -Wid / 2 + 2);
+    ctx.lineTo(-L / 2 - 6, -Wid / 2 - 10);
+    ctx.lineTo(-L / 2 + 2, -Wid / 2 + 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-L / 2 + 10, Wid / 2 - 2);
+    ctx.lineTo(-L / 2 - 6, Wid / 2 + 10);
+    ctx.lineTo(-L / 2 + 2, Wid / 2 - 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Headlight glow.
+    ctx.fillStyle = "rgba(254, 240, 138, 0.95)";
+    ctx.beginPath();
+    ctx.arc(L / 2 - 4, 0, 3.4, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
+  }
+
+  /* ---------------------------------- teardown ------------------------------- */
+
+  destroy() {
+    this.disposed = true;
+    this.running = false;
+    cancelAnimationFrame(this.raf);
+    this.unbindInput();
+    this.rattleEls.forEach((el) => el.classList.remove("roadster-rattle"));
+    this.rattleEls = [];
+    if (this.canvas.parentNode) this.canvas.parentNode.removeChild(this.canvas);
+    Matter.Engine.clear(this.engine);
+  }
+
+  getScore() {
+    return { score: this.score, best: this.best };
   }
 }

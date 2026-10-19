@@ -16,6 +16,8 @@ export interface RampHud {
 export interface RoadsterRampOptions {
   onHud?: (hud: RampHud) => void;
   onExit?: () => void;
+  /** Fired once, after the first frame renders — the scene is visibly up. */
+  onFirstFrame?: () => void;
 }
 
 /** Mutable touch-control state, written by the React overlay. */
@@ -61,6 +63,7 @@ export class RoadsterRamp {
   private clock = new THREE.Clock();
   private disposed = false;
   private hudTick = 0;
+  private firstFrameFired = false;
 
   // --- vehicle state ---
   private pos = new THREE.Vector3(-105, CAR_CLEAR, 0);
@@ -97,9 +100,12 @@ export class RoadsterRamp {
     this.container = container;
     this.opts = opts;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
+    // Guard: if the container hasn't been laid out yet, fall back to the viewport.
+    const cw = container.clientWidth || window.innerWidth;
+    const ch = container.clientHeight || window.innerHeight;
+    this.renderer.setSize(cw, ch);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     Object.assign(this.renderer.domElement.style, {
@@ -117,7 +123,7 @@ export class RoadsterRamp {
 
     this.camera = new THREE.PerspectiveCamera(
       62,
-      container.clientWidth / container.clientHeight,
+      cw / ch,
       0.1,
       1000
     );
@@ -132,9 +138,19 @@ export class RoadsterRamp {
     this.initAudio();
     this.bindInput();
 
+    // Post-mount resize kick: if layout settled after construction, re-fit.
+    requestAnimationFrame(() => {
+      if (!this.disposed) this.onResize();
+    });
+
+    // The loop never dies on a frame error — it logs and continues.
     const loop = () => {
       if (this.disposed) return;
-      this.step();
+      try {
+        this.step();
+      } catch (err) {
+        console.error("[roadster-ramp] frame error:", err);
+      }
       this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
@@ -742,6 +758,11 @@ export class RoadsterRamp {
     }
 
     this.renderer.render(this.scene, this.camera);
+
+    if (!this.firstFrameFired) {
+      this.firstFrameFired = true;
+      this.opts.onFirstFrame?.();
+    }
   }
 
   private stepGround(dt: number, input: ReturnType<RoadsterRamp["readInput"]>, speed: number) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RoadsterRamp, type RampHud } from '../game/roadster-ramp';
 
 interface Props {
@@ -12,16 +12,24 @@ interface Props {
 export default function RampExperience({ hud, setHud, onExit, isTouch }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<RoadsterRamp | null>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!mountRef.current) return;
-    const game = new RoadsterRamp(mountRef.current, {
-      onHud: (h) => setHud(h),
-      onExit,
-    });
-    gameRef.current = game;
+    try {
+      const game = new RoadsterRamp(mountRef.current, {
+        onHud: (h) => setHud(h),
+        onExit,
+        onFirstFrame: () => setReady(true),
+      });
+      gameRef.current = game;
+    } catch (e) {
+      console.error('[ramp-experience] failed to start 3D:', e);
+      setError(true);
+    }
     return () => {
-      game.dispose();
+      gameRef.current?.dispose();
       gameRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,6 +56,32 @@ export default function RampExperience({ hud, setHud, onExit, isTouch }: Props) 
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <div ref={mountRef} className="absolute inset-0" />
+
+      {/* Loading / error states */}
+      {!ready && !error && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="flex items-center gap-3 text-white/70">
+            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/25 border-t-white/90" />
+            <span className="text-sm font-medium tracking-wide">Warming up the thrusters…</span>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center px-6">
+          <div className="max-w-sm text-center">
+            <p className="text-lg font-semibold text-white">3D couldn't start on this device</p>
+            <p className="mt-2 text-sm text-white/60">
+              Your browser may have WebGL disabled. Try a recent Chrome, Edge, or Safari.
+            </p>
+            <button
+              onClick={onExit}
+              className="mt-6 rounded-full bg-white/15 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md hover:bg-white/25"
+            >
+              Back to the site
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* HUD pill */}
       <div className="pointer-events-none absolute top-4 left-4 rounded-2xl bg-black/60 px-5 py-3 text-white backdrop-blur-md">

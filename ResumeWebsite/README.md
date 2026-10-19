@@ -1,66 +1,72 @@
-# Interactive Resume Website
+# kalyanstack.com — Portfolio
 
-This is a modern, interactive resume website built with React, TypeScript, and Vite, styled with Tailwind CSS. It features several animations and visual effects, including a physics-based text animation and a WebGL fluid cursor effect.
+Personal portfolio site for **Kalyan Nalladimmu** — Software Engineer (AI) ·
+Full-Stack · Forward Deployed Engineer. Served at
+[kalyanstack.com](https://kalyanstack.com).
 
-## Prerequisites
+## Theme: Apple.com-inspired
 
-- [Node.js](https://nodejs.org/) (version 18.x or later recommended)
-- [npm](https://www.npmjs.com/) (usually comes with Node.js)
+The design follows Apple's visual language:
 
-## Local Development Setup
+- **Typography-first** — `-apple-system` / SF Pro stack (Inter fallback), big
+  tight headlines, generous whitespace, 980px max content width.
+- **Palette** — white `#ffffff`, near-black `#1d1d1f`, secondary gray
+  `#6e6e73`, link blue `#0066CC`, section alternation white / `#f5f5f7`,
+  one dark `#000` section (Projects) for contrast.
+- **Sticky glass nav** — `backdrop-blur`, translucent white, tiny links.
+- **Motion** — subtle scroll-reveal via `IntersectionObserver`
+  (`src/components/Reveal.tsx`), smooth scrolling, `prefers-reduced-motion`
+  respected. No heavy animation libraries.
+- **Dependency-light** — React + Vite + Tailwind (CDN). No AI chatbot, no API
+  keys, no physics/WebGL effects.
 
-Follow these steps to get the application running on your local machine.
+## Project structure
 
-### 1. Install Dependencies
+```
+index.html            # entry HTML, Tailwind CDN + font config
+index.tsx             # React entry point
+App.tsx               # section composition
+src/
+  data.ts             # ← ALL site content lives here
+  index.css           # base styles, reveal animation, gradient headline
+  components/
+    Nav.tsx           # sticky glass nav (+ mobile menu)
+    Hero.tsx
+    About.tsx
+    Experience.tsx
+    Skills.tsx
+    Projects.tsx      # dark section, links to GitHub repos
+    Education.tsx
+    Contact.tsx       # contact + footer
+    Reveal.tsx        # scroll-reveal wrapper
+```
 
-Navigate to the project's root directory in your terminal and run the following command to install all the necessary packages defined in `package.json`:
+## Updating content
+
+Edit **`src/data.ts`** — profile, experience, skill groups, projects,
+education. No other file needs to change for content updates.
+
+## Local development
 
 ```bash
 npm install
+npm run dev      # http://localhost:5173
 ```
-This will create a `node_modules` directory with all the required libraries.
 
-### 2. Configure Environment Variables
-
-This project requires a Google Gemini API key to run the AI Assistant feature.
-
-1.  Create a new file in the root of your project directory named `.env`.
-2.  Add the following line to the file, replacing `YOUR_API_KEY_HERE` with your actual Google Gemini API key:
-
-    ```
-    VITE_API_KEY=YOUR_API_KEY_HERE
-    ```
-
-**Important:** The variable **must** be prefixed with `VITE_` for the application to be able to access it.
-
-### 3. Run the Development Server
-
-Once the dependencies are installed and the `.env` file is configured, you can start the Vite development server:
+## Production build
 
 ```bash
-npm run dev
+npm run build    # type-checks (tsc) then emits dist/
+npm run preview  # serve dist/ locally
 ```
 
-This command will compile the application and start a local server, typically at `http://localhost:5173`. Vite will print the exact address in your terminal.
+Deploy the `dist/` directory to any static host.
 
-Open your web browser and navigate to the provided URL to see the application running. The server supports Hot Module Replacement (HMR), so any changes you make to the source code will be reflected in the browser instantly without a full page reload.
+## Notes
 
-## Building for Production
-
-To create an optimized production build of the application, run:
-
-```bash
-npm run build
-```
-
-This will create a `dist` directory containing the static files (HTML, CSS, JS) for your application. You can then deploy this directory to any static site hosting service.
-
-## Previewing the Production Build
-
-After building the project, you can preview the production version locally:
-
-```bash
-npm run preview
-```
-
-This will start a local server to serve the files from the `dist` directory.
+- Tailwind is loaded from the CDN in `index.html`; no Tailwind build step.
+- The Inter webfont loads from Google Fonts as the non-Apple fallback.
+- This is a rebuild of the previous interactive resume site. The old
+  AI-chatbot (`components/Chatbot.tsx`, `api/ai-proxy.ts`, `server/proxy.js`),
+  physics text (`components/FallingText.tsx`, `matter-js`), and WebGL cursor
+  (`src/lib/ogl.ts`) were intentionally removed.

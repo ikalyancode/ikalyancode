@@ -1,0 +1,58 @@
+/* kalyanstack.com — Apple-inspired theme.
+   Typography-first, generous whitespace, system font stack.
+   Tailwind utilities come from the CDN script in index.html. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #0066cc;
+  color: #fff;
+}
+
+/* Offset anchored sections below the sticky nav */
+section[id] {
+  scroll-margin-top: 72px;
+}
+
+/* Subtle scroll-reveal (driven by the Reveal component) */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Apple-style gradient headline text */
+.text-gradient {
+  background: linear-gradient(94deg, #0090ff 0%, #a259ff 40%, #ff5e8a 75%, #ff8a3d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
